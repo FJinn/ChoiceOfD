@@ -13,20 +13,20 @@ public class BasicAction : ActionBase
             return;
         }
 
-        var hits = DetectStraightLine(requiredDistanceToTarget);
-        if(hits != null && hits.Length > 0)
+        // if instigator is enemy, let player controller handles damage process
+        if(instigator is not PlayerCharacter)
         {
-            CharacterBase target = hits[0].transform.GetComponent<CharacterBase>();
-            target.ReduceHealth(1);
+            PlayerController.Instance.ReduceHealth(1, callback);
 
-            callback?.Invoke();
             return;
         }
 
-        if(instigator is PlayerController)
+        // if instigator is player
+        for(int i=0; i<targets.Length; ++i)
         {
-            callback?.Invoke();
+            targets[i].ReduceHealth(1);
         }
+        callback?.Invoke();
     }
 
     protected override void SubAction_Implementation(Action callback)

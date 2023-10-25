@@ -7,6 +7,8 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "GameEvent", menuName = "ScriptableObjects/GameEvent", order = 2)]
 public class GameEventData : ScriptableObject
 {
+    public string eventTitle;
+    public EGameEvent firstEventType;
     public List<GameEventInfo> gameEventInfos;
 }
 
@@ -15,7 +17,6 @@ public class GameEventInfo
 {
     public string eventName = "";
     public string eventDescription = "";
-    public RoomTileInfo roomTileInfo;
 
     [HideInInspector] public EGameEvent eventType;
 

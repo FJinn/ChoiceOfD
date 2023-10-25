@@ -8,22 +8,15 @@ public class GameManager : Singleton<GameManager>
 {
     public Action onGameOver;
 
-    [SerializeField] List<PlayerController> allPlayers;
+    [SerializeField] PlayerController player;
     bool isGameOver;
     public bool IsGameOver() => isGameOver;
+    public PlayerController GetPlayer() => player;
 
     void Start()
     {
-        // temp game flow -> add character, spawn a room, fight
-        for(int i=0; i<allPlayers.Count; ++i)
-        {
-            allPlayers[i].Initialize();
-            if(allPlayers[i] is PlayerController player)
-            {
-                // player.EquipAction(ActionsManager.Instance.GetAction("Basic Action"));
-                // player.EquipAction(ActionsManager.Instance.GetAction("Basic Action"));
-            }
-        }
+        player.Initialize();
+        //player.ObtainCharacter(ECharacterClass.Fighter);
 /*
         RoomTileInfo roomTileInfo = new RoomTileInfo(){radius = 10f, basicEnemyAmount = 5};
         RoomManager.Instance.InitializeRoom(roomTileInfo);
@@ -36,18 +29,21 @@ public class GameManager : Singleton<GameManager>
     {
         if(Input.GetKeyUp(KeyCode.P))
         {
-            GameEvent.Instance.LeaveRoomSelection();
-        }
-    }
 
-    public List<PlayerController> GetAllPlayers()
-    {
-        return allPlayers;
+        EventSelectionUI eventSelectionUI = EventSelectionUI.Instance;
+        EventSelectionUI.ChoiceParams fighter = new EventSelectionUI.ChoiceParams(){displayText = "Fighter", callback = ()=>player.ObtainCharacter(ECharacterClass.Fighter, false)};
+        EventSelectionUI.ChoiceParams priestess = new EventSelectionUI.ChoiceParams(){displayText = "Priestess", callback = ()=>player.ObtainCharacter(ECharacterClass.Priestess, false)};
+        EventSelectionUI.ChoiceParams rogue = new EventSelectionUI.ChoiceParams(){displayText = "Rogue", callback = ()=>player.ObtainCharacter(ECharacterClass.Rogue, false)};
+        eventSelectionUI.AddChoices(fighter, priestess, rogue);
+        eventSelectionUI.Activate();
+            // GameEvent.Instance.LeaveRoomSelection();
+        }
     }
 
     public void GameStart()
     {
-        GameEvent.Instance.ToFirstEvent();
+        RoomManager.Instance.InitializeTavernRoom();
+        RoomManager.Instance.PlayerCharactersEnterRoom(()=>RoomManager.Instance.SpawnObjectsInRoom(null));
     }
 
     public void GameOver()

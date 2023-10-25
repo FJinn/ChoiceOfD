@@ -9,6 +9,11 @@ public class AnimContoller : MonoBehaviour
 
     Coroutine animationRoutine;
 
+    public void SetAnimator(Animator _animator)
+    {
+        animator = _animator;
+    }
+
     public void PlayAnimation(string animationName)
     {
         animator.Play(animationName);

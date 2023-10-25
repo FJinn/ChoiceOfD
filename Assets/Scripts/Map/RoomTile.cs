@@ -8,16 +8,21 @@ using Random = UnityEngine.Random;
 
 public class RoomTile : MonoBehaviour
 {
-    [SerializeField, TypeSelector(typeof(ActionBase))] List<TypeSelector> containedActions;
+    [SerializeField] float radius = 10f;
+
+    [SerializeField] Vector3 center = Vector3.zero;
+    [SerializeField] float roomTileHeight = 0.5f;
     [SerializeField] Transform[] playersStartPoints;
     [SerializeField] Transform[] enemyStartPoints;
 
-    RoomTileInfo currentRoomTileInfo;
     List<CharacterBase> charactersInRoom = new();
 
-    public void Initialize(RoomTileInfo _roomTileInfo)
+    public float GetRadius() => radius;
+    public Vector3 GetCenter() => center;
+    public float halfRoomTileHeight => roomTileHeight * 0.5f;
+
+    public void Initialize()
     {
-        currentRoomTileInfo = _roomTileInfo;
         gameObject.SetActive(true);
     }
 
@@ -27,36 +32,21 @@ public class RoomTile : MonoBehaviour
         gameObject.SetActive(false);
     }
 
-    public RoomTileInfo GetCurrentRoomTileInfo() => currentRoomTileInfo;
-
-    public Type GetPossibleActionTypeInRoomTile()
-    {
-        return containedActions[Random.Range(0, containedActions.Count)].selectedType;
-    }
-
     public void PlayerCharactersEnterRoom(Action callback)
     {
-        List<PlayerController> players = GameManager.Instance.GetAllPlayers();
-
-        if(players.Count > playersStartPoints.Length)
+        PlayerController player = GameManager.Instance.GetPlayer();
+        int playerCharactersCount = player.GetPlayerPartyCharactersCount();
+        if(playerCharactersCount > playersStartPoints.Length)
         {
-            Debug.LogError($"Has more players ({players.Count}) than players' start points ({playersStartPoints.Length})! Skipping CharactersEnterRoom()!");
+            Debug.LogError($"Has more players ({playerCharactersCount}) than players' start points ({playersStartPoints.Length})! Skipping CharactersEnterRoom()!");
             return;
         }
-        int characterDoneEnterCount = 0;
-
-        for(int i=0; i<players.Count; ++i)
+        
+        player.EnterRoom(this, ()=>
         {
-            players[i].EnterRoom(this, playersStartPoints[i], ()=>
-            {
-                characterDoneEnterCount+=1;
-                if(characterDoneEnterCount == players.Count)
-                {
-                    callback?.Invoke();
-                }
-            });
-            AddCharactersIntoList(players[i]);
-        }
+            callback?.Invoke();
+        }, playersStartPoints);
+        AddCharactersIntoList(player.GetAllPlayerCharacters());
     }
 
     void CharactersExitRoom()
@@ -68,25 +58,34 @@ public class RoomTile : MonoBehaviour
         charactersInRoom.Clear();
     }
 
-    void AddCharactersIntoList(CharacterBase target)
+    void AddCharactersIntoList(params CharacterBase[] targets)
     {
-        if(charactersInRoom.Contains(target))
+        foreach(var target in targets)
         {
-            Debug.LogError($"Characters In Room List has contained {target}!");
-            return;
+            if(charactersInRoom.Contains(target))
+            {
+                Debug.LogError($"Characters In Room List has contained {target}!");
+                return;
+            }
+
+            charactersInRoom.Add(target);
         }
-
-        charactersInRoom.Add(target);
     }
 
-    public List<PlayerController> GetAllPlayersInRoom()
-    {
-        return GameManager.Instance.GetAllPlayers();
-    }
-
+    // ToDo:: handle room without enemy
     public void SpawnRoomObjects(Action callback)
     {
-        int basicEnemyAmount = GameEvent.Instance.GetCurrentGameEventInfo().basicEnemyAmount;
+        GameEventInfo eventInfo = GameEvent.Instance.GetCurrentGameEventInfo();
+        if(eventInfo == null)
+        {
+            return;
+        }
+        SpawnEnemiesIntoRoom(eventInfo.basicEnemyAmount, callback);
+    }
+
+    void SpawnEnemiesIntoRoom(int amount, Action callback)
+    {
+        int basicEnemyAmount = amount;
         if(basicEnemyAmount <= 0)
         {
             callback?.Invoke();
@@ -103,14 +102,14 @@ public class RoomTile : MonoBehaviour
             }
             BasicEnemy newBasicEnemy = SpawnManager.Instance.GetBasicEnemy();
             newBasicEnemy.Initialize();
-            newBasicEnemy.EnterRoom(this, enemyStartPoints[i], ()=> 
+            newBasicEnemy.EnterRoom(this, ()=> 
             {
                 characterDoneEnterCount+=1;
                 if(characterDoneEnterCount == basicEnemyAmount)
                 {
                     callback?.Invoke();
                 }
-            });
+            }, enemyStartPoints[i]);
             AddCharactersIntoList(newBasicEnemy);
         }
     }
@@ -129,15 +128,8 @@ public class RoomTile : MonoBehaviour
 #if UNITY_EDITOR
     void OnDrawGizmosSelected()
     {
-        Gizmos.DrawWireSphere(currentRoomTileInfo.center, currentRoomTileInfo.radius);
+        Gizmos.DrawWireSphere(center, radius);
+        Gizmos.DrawIcon(center, "centerPoint");
     }
 #endif
-}
-
-[Serializable]
-public class RoomTileInfo
-{
-    public float radius = 10f;
-
-    public Vector3 center = Vector3.zero;
 }

@@ -4,13 +4,13 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System;
+using Unity.VisualScripting;
 
 public class CardUI : Singleton<CardUI>
 {
-    [SerializeField] PlayerController character;
     [SerializeField] CardUIItem cardUIItemPrefab;
-    [SerializeField] Vector2 cardbaseSize;
-    [SerializeField] Vector2 cardSelectedSize;
+    [SerializeField] GameObject cardUICanvas;
+    [SerializeField] GameObject cardPanelFrame;
     
     [Header("Class Card Zone")]
     [SerializeField] CardPanelInfo[] cardPanels;
@@ -28,28 +28,47 @@ public class CardUI : Singleton<CardUI>
             transform.gameObject.SetActive(true);
             characterClass = _characterClass;
         }
+
+        public void Deactivate()
+        {
+            transform.gameObject.SetActive(false);
+            characterClass = null;
+        }
     }
 
     List<CardUIItem> spawnedCards = new List<CardUIItem>();
     CardUIItem currentSelected;
-    bool isSelectToRemove;
+    public bool isSelectToRemove {private set; get;}
+
+    protected override void Awake()
+    {
+        base.Awake();
+
+        foreach(var item in cardPanels)
+        {
+            item.Deactivate();
+        }
+
+        cardPanelFrame.SetActive(false);
+        cardUICanvas.SetActive(false);
+    }
 
     void OnEnable()
     {
-        character.onSelectAction += OnUpdateCurrentAction;
-        character.onEquipAction += OnAddAction;
-        character.onRemoveAction += OnRemoveAction;
-        character.onSelectActionToRemove += UpdateSelectionType;
+        PlayerController.onSelectAction += OnUpdateCurrentAction;
+        PlayerController.onEquipAction += OnAddAction;
+        PlayerController.onRemoveAction += OnRemoveAction;
+        PlayerController.onSelectActionToRemove += UpdateSelectionType;
         PlayerParty.onAddCharacterToParty += OnCharacterAddedToParty;
         PlayerParty.onRemoveCharacterFromParty += OnCharacterRemovedFromParty;
     }
 
     void OnDisable()
     {
-        character.onSelectAction -= OnUpdateCurrentAction;
-        character.onEquipAction -= OnAddAction;
-        character.onRemoveAction -= OnRemoveAction;
-        character.onSelectActionToRemove -= UpdateSelectionType;
+        PlayerController.onSelectAction -= OnUpdateCurrentAction;
+        PlayerController.onEquipAction -= OnAddAction;
+        PlayerController.onRemoveAction -= OnRemoveAction;
+        PlayerController.onSelectActionToRemove -= UpdateSelectionType;
         PlayerParty.onAddCharacterToParty -= OnCharacterAddedToParty;
         PlayerParty.onRemoveCharacterFromParty -= OnCharacterRemovedFromParty;
     }
@@ -59,11 +78,27 @@ public class CardUI : Singleton<CardUI>
         isSelectToRemove = true;
     }
 
-    void OnUpdateCurrentAction(PlayerController.ActionData currentActionData)
+    // temp till the ui/ux design is confirmed on how to select and use action
+    public void ConfrimSelection()
+    {
+        PlayerController.SelectActionData(currentSelected.GetActionData());
+    }
+
+    public void SetCurrentSelectedCardUIItem(CardUIItem target)
+    {
+        if(currentSelected != null && currentSelected != target)
+        {
+            currentSelected.Deselect();
+        }
+
+        currentSelected = target;
+    }
+
+    void OnUpdateCurrentAction(ActionData currentActionData)
     {
         if(currentActionData == null)
         {
-            currentSelected?.DeselectAsCurrentAction(cardbaseSize);
+            currentSelected?.Deselect();
             return;
         }
 
@@ -74,21 +109,19 @@ public class CardUI : Singleton<CardUI>
             Debug.LogError($"Cannot find {currentActionData.action.actionName} in spawned card! Skipping function!");
             return;
         }
-        currentSelected?.DeselectAsCurrentAction(cardbaseSize);
-        found.SelectAsCurrentAction(cardSelectedSize, isSelectToRemove);
-        currentSelected = found;
+        found.Select();
     }
 
-    void OnAddAction(PlayerController.ActionData target)
+    void OnAddAction(ActionData target)
     {
         CardPanelInfo foundPanel = cardPanels.Find(x => x.characterClass.characterClassType == target.belongToCharacterClass);
 
         CardUIItem card = GetCardUIItem(foundPanel.transform);
-        card.Initialize(cardbaseSize, target);
+        card.Initialize(target);
         spawnedCards.Add(card);
     }
 
-    void OnRemoveAction(PlayerController.ActionData target)
+    void OnRemoveAction(ActionData target)
     {
         var found = spawnedCards.Find(x => x.IsActivated() && x.IsCachedActionData(target));
 
@@ -103,6 +136,9 @@ public class CardUI : Singleton<CardUI>
 
     void OnCharacterAddedToParty(CharacterClassInfo character)
     {
+        cardUICanvas.SetActive(true);
+        cardPanelFrame.SetActive(true);
+
         CardPanelInfo found = cardPanels.Find(x => !x.IsActivated());
         Debug.Assert(found != null);
         found.Activate(character);
@@ -110,7 +146,15 @@ public class CardUI : Singleton<CardUI>
 
     void OnCharacterRemovedFromParty(CharacterClassInfo character)
     {
+        CardPanelInfo found = cardPanels.Find(x => x.characterClass == character);
+        Debug.Assert(found != null);
+        found.Deactivate();
 
+        if(!cardPanels.Exists(x => x.IsActivated()))
+        {
+            cardPanelFrame.SetActive(false);
+            cardUICanvas.SetActive(false);
+        }
     }
 
     CardUIItem GetCardUIItem(Transform panelTransform)

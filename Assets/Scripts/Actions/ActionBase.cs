@@ -17,8 +17,6 @@ public abstract class ActionBase : MonoBehaviour
     public int currentHealth {get; private set;}
     [SerializeField] GameObject actionPrefab;
     [SerializeField] ECharacterClass[] belongsToClasses;
-    [SerializeField] LayerMask detectionLayerMask;
-    [SerializeField] bool ignoreOwnerLayer = true;
     [SerializeField] protected float requiredDistanceToTarget = 2f;
 
     [SerializeField] int actionBaseWeight = 0;
@@ -29,6 +27,7 @@ public abstract class ActionBase : MonoBehaviour
     static List<ActionObjectInfo> actionObjects = new List<ActionObjectInfo>();
 
     protected CharacterBase instigator;
+    protected CharacterBase[] targets;
 
     protected bool isMainAction;
 
@@ -138,17 +137,6 @@ public abstract class ActionBase : MonoBehaviour
             yield return null;
         }
         self.SetActive(false);
-    }
-    
-    public virtual RaycastHit[] DetectStraightLine(float maxDistance)
-    {
-        LayerMask modifiedLayerMask = detectionLayerMask;
-        if(ignoreOwnerLayer) modifiedLayerMask &= ~(1 << instigator.GetLayer());
-        Vector3 initialPos = instigator.transform.position;
-        Vector3 direction = instigator.transform.forward;
-        // Debug.DrawLine(initialPos, initialPos + direction * maxDistance, Color.red, 10f);
-        // Debug.LogError(Physics.RaycastAll(initialPos, direction, maxDistance, modifiedLayerMask).Length);
-        return Physics.RaycastAll(initialPos, direction, maxDistance, modifiedLayerMask);
     }
 
 #region Health

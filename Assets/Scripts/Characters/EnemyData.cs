@@ -55,6 +55,7 @@ public class EnemyCombatData
     {
         // ToDo: if there is obstacle
         // currently it is just straight line, need to be more dynamic, to look more intelligent
+        // CleanUp: Design changes, there is not movement and is complete turn based
         if(currentTarget != null && currentTarget.GetHealth() > 0 && DetectCurrentTarget(currentPos))
         {
             Vector3 targetPos = currentTarget.transform.position;

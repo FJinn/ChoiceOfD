@@ -2,232 +2,189 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.InputSystem;
 
-public class PlayerController : CharacterBase
+public class PlayerController : Singleton<PlayerController>, ICombat
 {
-    public Action<ActionData> onSelectAction;
-    public Action<ActionData> onEquipAction;
-    public Action<ActionData> onRemoveAction;
-    public Action onSelectActionToRemove;
+    public static Action<ActionData> onSelectAction;
+    public static Action<ActionData> onEquipAction;
+    public static Action<ActionData> onRemoveAction;
+    public static Action onSelectActionToRemove;
 
-    [Serializable]
-    public class ActionData
-    {
-        public ActionBase action;
-        public ECharacterClass belongToCharacterClass;
-        public int obtainedIndex;
-    }
+    [SerializeField] CharacterClassData allPlayerCharactersData;
 
-    [SerializeField] AnimContoller animContoller;
     [SerializeField] PlayerInput playerInput;
     [SerializeField] PlayerParty playerParty;
+    [SerializeField, ReadOnly] PlayerCharacter[] playerCharacters = new PlayerCharacter[4];
+    public PlayerCharacter[] GetAllPlayerCharacters() => playerCharacters;
 
-    [Header("Variables")]
-    [SerializeField] float scrollScale = 1f;
-
+    PlayerCharacter currentCharacter;
     bool stopInput;
-    InputAction moveInputAction;
-    InputAction mainIputAction;
-    InputAction scrollInputAction;
-    float scrollDelta;
 
     CharacterBase currentTarget;
+    int characterEnteredRoomCount;
+    Action charactersEnteredRoomCallback;
 
-    static readonly int runningAnimID = Animator.StringToHash("IsRunning");
-    static readonly int mainActionAnimID = Animator.StringToHash("MainAction");
-    static readonly int defeatedAnimID = Animator.StringToHash("KneelingDefeat");
-
-    List<ActionData> actionList = new List<ActionData>();
-    ActionBase currentAction;
-    int currentActionIndex;
+    static ActionData selectedActionData;
     int currentReceivingDamage;
-    public List<ActionData> actions => actionList;
-    public override void ReduceHealth(int reduceAmount)
+    Coroutine selectActionDataRoutine;
+
+    public void ReduceHealth(int reduceAmount, Action callback)
     {
         GameManager.Instance.PauseCombat();
-        mainIputAction.performed -= SelectAction;
 
         currentReceivingDamage = reduceAmount;
 
         onSelectActionToRemove?.Invoke();
-        // update ui to remove UI type with current action data
-        onSelectAction?.Invoke(actionList[currentActionIndex]);
-        mainIputAction.performed += ActionTakeDamage;
-    }
-    public override void AddHealth(int addValue = 1)
-    {
-    }
 
-    void Start()
-    {
-        scrollInputAction = playerInput.actions.FindAction("ScrollWheel");
-        moveInputAction = playerInput.actions.FindAction("Move");
-        mainIputAction = playerInput.actions.FindAction("PrimaryKey");
-        mainIputAction.performed += SelectAction;
-    }
-
-    void OnDestroy()
-    {
-        mainIputAction.performed -= SelectAction;
-    }
-
-    void Update()
-    {
-        if(playerInput == null)
+        WaitToSelectActionData(()=>
         {
-            return;
-        }
-
-        Vector2 scrollValue = scrollInputAction.ReadValue<Vector2>();
-        scrollDelta += scrollValue.y * scrollScale;
-        if(scrollDelta >= 1f)
-        {
-            NextAction();
-            scrollDelta = 0f;
-        }
-        else if(scrollDelta <= -1f)
-        {
-            NextAction(false);
-            scrollDelta = 0f;
-        }
+            // update ui to remove UI type with current action data
+            onSelectAction?.Invoke(selectedActionData);
+        });
     }
-/*
-    void FixedUpdate()
+
+    public static void SelectActionData(ActionData target)
     {
-        if(playerInput == null || stopInput)
-        {
-            return;
-        }
-        Vector2 moveValue = moveInputAction.ReadValue<Vector2>();
-        Vector3 direction = new Vector3(moveValue.x, 0, moveValue.y);
-
-        bool hasMoveInput = moveValue.SqrMagnitude() > 0;
-
-        if(hasMoveInput)
-        {
-            movement.Move(direction, speed);
-            movement.LookAt(direction);
-        }
-
-        animContoller.SetParamBool(runningAnimID, hasMoveInput);
+        selectedActionData = target;
     }
-*/
-    public override void Initialize()
+
+    public void Initialize()
     {
-        transform.position = new Vector3(0, lengthFromGround, 0);
         SetStopInput(true);
     }
 
     public void EquipAction(ActionBase _action, ECharacterClass targetClass)
     {
-        // ToDo: replace if the slot is full
-        if(playerParty.IsCharacterEquipSlotFull(targetClass))
+        if(!playerParty.IsCharacterEquipSlotFull(targetClass))
         {
-            todo
-        }
-
-        _action.InitializeAction();
-        ActionData actionData = new ActionData();
-        actionData.action = _action;
-        var sameActions = actionList.FindAll(x => x.action == _action);
-        actionData.obtainedIndex = sameActions != null && sameActions.Count > 0 ? sameActions.Count + 1 : 1;
-
-        actionList.Add(actionData);
-        onEquipAction?.Invoke(actionData);
-        
-        if(actionList.Count == 1)
-        {
-            currentAction = actionData.action;
-            currentActionIndex = 0;
-            onSelectAction?.Invoke(actionData);
-        }
-    }
-
-    public void ActionTakeDamage(InputAction.CallbackContext callbackContext)
-    {
-        if(currentAction == null)
-        {
-            Debug.LogError("There is no current action to be removed! Skipping LoseAction()!");
+            playerParty.EquipAction(_action, targetClass);
             return;
         }
 
-        ActionData currentActionData = actionList[currentActionIndex];
+        WaitToSelectActionData(()=>
+        {
+            playerParty.RemoveAction(selectedActionData);
+
+            playerParty.EquipAction(_action, targetClass);
+            selectedActionData = null;
+        });
+    }
+
+    void WaitToSelectActionData(Action callback)
+    {
+        if(selectActionDataRoutine != null)
+        {
+            StopCoroutine(selectActionDataRoutine);
+        }
+        selectActionDataRoutine = StartCoroutine(WaitToSelectActionDataUpdate(callback));
+    }
+
+    IEnumerator WaitToSelectActionDataUpdate(Action callback)
+    {
+        while(selectedActionData == null)
+        {
+            yield return null;
+        }
+        callback?.Invoke();
+    }
+
+    public void ObtainCharacter(ECharacterClass eCharacterClass, bool addToParty = true)
+    {
+        CharacterClassInfo characterClassInfo = allPlayerCharactersData.GetDefaultCharacterClassInfo(eCharacterClass);
+        
+        playerParty.ObtainCharacter(characterClassInfo);
+
+        if(addToParty && playerParty.characterInPartyCount < 4)
+        {
+            AddCharacterIntoParty(characterClassInfo);
+        }
+    }
+
+    public void AddCharacterIntoParty(ECharacterClass eCharacterClass)
+    {
+        bool success = playerParty.AddCharacterIntoParty(eCharacterClass);
+        if(!success)
+        {
+            Debug.LogError($"Failed to add {eCharacterClass} into party! Skipping AddCharacterIntoParty()!");
+            return;
+        }
+        CharacterClassInfo characterClassInfo = allPlayerCharactersData.GetDefaultCharacterClassInfo(eCharacterClass);
+        PlayerCharacter targetSlot = playerCharacters.Find(x => !x.HasAssigned());
+        targetSlot.AssignCharacterClassInfo(characterClassInfo);
+        targetSlot.InitializePlayerCharacter(allPlayerCharactersData);
+    }
+
+    public void AddCharacterIntoParty(CharacterClassInfo characterClassInfo)
+    {
+        if(!playerParty.AddCharacterIntoParty(characterClassInfo.characterClassType))
+        {
+            Debug.LogError("Failed to AddCharacterIntoParty!");
+            return;
+        }
+
+        PlayerCharacter targetSlot = playerCharacters.Find(x => !x.HasAssigned());
+        targetSlot.AssignCharacterClassInfo(characterClassInfo);
+        targetSlot.InitializePlayerCharacter(allPlayerCharactersData);
+    }
+
+    public void RemoveCharacterFromParty(ECharacterClass eCharacterClass)
+    {
+        playerParty.RemoveCharacterFromParty(eCharacterClass);
+    }
+
+    public int GetPlayerPartyCharactersCount() => playerParty.characterInPartyCount;
+
+    public void ActionTakeDamage(InputAction.CallbackContext callbackContext)
+    {
+        ActionData currentActionData = selectedActionData;
 
         bool isActionDead = currentActionData.action.ReduceHealth(currentReceivingDamage);
         currentReceivingDamage = 0;
 
         if(!isActionDead)
         {
-            mainIputAction.performed -= ActionTakeDamage;
-            mainIputAction.performed += SelectAction;
-
             GameManager.Instance.ResumeCombat();
             return;
         }
 
-        RemoveAction(currentActionData);
+        playerParty.RemoveAction(currentActionData);
 
-        if(actionList.Count <= 0)
+        if(playerParty.characterInPartyCount <= 0)
         {
-            currentAction = null;
+            selectedActionData = null;
             KillCharacter();
             return;
         }
 
-        currentAction = actionList[currentActionIndex].action;
-        onSelectAction?.Invoke(actionList[currentActionIndex]);
-
-        mainIputAction.performed -= ActionTakeDamage;
-        mainIputAction.performed += SelectAction;
-
         GameManager.Instance.ResumeCombat();
     }
 
-    void RemoveAction(ActionData target)
+    public void EnterRoom(RoomTile roomTile, Action callback, params Transform[] enterTransforms)
     {
-        onRemoveAction?.Invoke(target);
-        actionList.Remove(target);
-
-        if(currentActionIndex >= actionList.Count && actionList.Count > 0)
+        charactersEnteredRoomCallback = callback;
+        characterEnteredRoomCount = playerCharacters.Length;
+        for(int i=0; i<playerCharacters.Length; ++i)
         {
-            currentActionIndex = actionList.Count - 1;
+            playerCharacters[i].EnterRoom(roomTile, ()=>AllCharacterEnteredRoom(), enterTransforms[i]);
         }
     }
 
-    void NextAction(bool isPrevious = false)
+    // enterRoom callback only call once instead of multiple times
+    void AllCharacterEnteredRoom()
     {
-        if(actionList.Count <= 1)
-            return;
-        currentActionIndex = (currentActionIndex + (isPrevious?-1:1)) % actionList.Count;
-        currentAction = actionList[currentActionIndex].action;
-        // Debug.LogError(currentActionIndex + " :: NextAction:: " + actionList.Count + " :: " + actionList.FindIndex(x => x == currentAction));
-        onSelectAction?.Invoke(actionList[currentActionIndex]);
-    }
-
-    public override void EnterRoom(RoomTile roomTile, Transform enterTransform, Action callback)
-    {
-        base.EnterRoom(roomTile, enterTransform, callback);
-        movement.SetHasBoundary(false);
-        RoomTileInfo roomTileInfo = roomTile.GetCurrentRoomTileInfo();
-        
-        Vector3 targetPos = enterTransform.position;
-        targetPos.y = lengthFromGround;
-
-        movement.MoveTo_Duration(targetPos, 1f, ()=> 
+        if(characterEnteredRoomCount < playerCharacters.Length)
         {
-            movement.SetHasBoundary(true);
-            callback?.Invoke();
+            return;
+        }
 
-            initialRoomPosition = transform.position;
-        });
-    }
+        charactersEnteredRoomCallback?.Invoke();
 
-    public override void ExitRoom(RoomTile roomTile)
-    {
-        // do transition 
+        charactersEnteredRoomCallback = null;
+        characterEnteredRoomCount = 0;
     }
 
     void SetStopInput(bool value)
@@ -235,61 +192,62 @@ public class PlayerController : CharacterBase
         stopInput = value;
     }
 
-    public void SelectAction(InputAction.CallbackContext callbackContext)
+    public void DoAction()
     {
         if(stopInput)
         {
             return;
         }
 
-        if(currentAction == null)
+        if(selectedActionData == null)
         {
-            Debug.LogError("There is no current action!");
+            Debug.LogError("There is no selected Action Data!");
             return;
         }
 
         Debug.Assert(currentTarget != null);
         SetStopInput(true);
 
-        movement.MoveTo_Speed(currentTarget.forwardPosition, speed, ()=>
+        currentCharacter.MoveTo_Speed(currentTarget.forwardPosition, ()=>
         {
-            animContoller.PlayAnimation(mainActionAnimID, null);
-
-            currentAction.DoAction(this);
+            selectedActionData.action.DoAction(currentCharacter);
+            selectedActionData = null;
         });
     }
 
-    public override void IStartTurn()
+    void KillCharacter()
+    {
+        currentCharacter.KillCharacter(()=>
+        {
+            if(playerParty.characterInPartyCount <= 0)
+            {
+                GameManager.Instance.GameOver();
+            }
+        });
+    }
+#region Combat
+    public void IStartTurn()
     {
         SetStopInput(false);
     }
 
-    public override void ISelectAction()
+    public void ISelectAction()
     {
         SetStopInput(false);
     }
 
-    public override void ICleanUpAction()
+    public void ICleanUpAction()
     {
-        base.ICleanUpAction();
+        currentCharacter.ICleanUpAction();
     }
 
-    public override void ITurnEnd()
+    public void ITurnEnd()
     {
     }
 
-    public override void ICombatStarted()
+    public void ICombatStarted()
     {
         SetStopInput(true);
     }
-
-    public override void KillCharacter()
-    {
-        animContoller.PlayAnimation(defeatedAnimID, ()=>
-        {
-            CombatManager.Instance.UnRegisterFromCombat(gameObject);
-            // GameManager.Instance.ResumeCombat();
-            GameManager.Instance.GameOver();
-        });
-    }
+#endregion
 }

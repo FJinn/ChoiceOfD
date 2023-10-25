@@ -8,7 +8,7 @@ public class GameEvent : Singleton<GameEvent>
     public Action<GameEventInfo> onUpdateCurrentGameEventInfo;
     public Action onRoomReady;
 
-    public GameEventData gameEventData;
+    GameEventData currentEventData;
     GameEventInfo currentGameEventInfo;
     int currentEventDataIndex;
 
@@ -22,7 +22,6 @@ public class GameEvent : Singleton<GameEvent>
     void InitializeEvent()
     {
         RoomManager roomManager = RoomManager.Instance;
-
         roomManager.PlayerCharactersEnterRoom(()=>
         {
             roomManager.SpawnObjectsInRoom(()=> 
@@ -32,13 +31,15 @@ public class GameEvent : Singleton<GameEvent>
         });
     }
 
-    public void ToFirstEvent()
+    public void ToDungeonEvent(GameEventData gameEventData)
     {
-        currentGameEventInfo = gameEventData.gameEventInfos[0];
+        currentEventData = gameEventData;
+        currentGameEventInfo = currentEventData.gameEventInfos[0];
+        currentGameEventInfo.eventType = gameEventData.firstEventType;
         onUpdateCurrentGameEventInfo?.Invoke(currentGameEventInfo);
 
         RoomManager roomManager = RoomManager.Instance;
-        roomManager.InitializeRoom(currentGameEventInfo.roomTileInfo);
+        roomManager.InitializeCombatRoom();
         InitializeEvent();
     }
 
@@ -58,10 +59,22 @@ public class GameEvent : Singleton<GameEvent>
                 StartCombatEvent();
                 break;
         }
+
+        if(currentEventData.gameEventInfos.Count <= currentEventDataIndex + 1)
+        {
+            currentEventData = null;
+            currentGameEventInfo = null;
+        }
     }
 
     public void LeaveRoomSelection()
     {
+        if(currentEventData == null)
+        {
+            Debug.LogError("There is no current event data! Skip LeaveRoomSelection()!");
+            return;
+        }
+
         int eventChoiceLength = currentGameEventInfo.leaveRoomEventChoiceParams.Length;
         if(eventChoiceLength > 3)
         {
@@ -71,24 +84,26 @@ public class GameEvent : Singleton<GameEvent>
         if(eventChoiceLength <= 0)
         {
             Debug.LogError("There is no leave room event choice! Skipping LeaveRoomSelection()!");
-            LeaveRoomImplementation(null);
+            LeaveRoomImplementation(EGameEvent.None);
             return;
+        }
+
+        foreach(var item in currentGameEventInfo.leaveRoomEventChoiceParams)
+        {
+            item.callback = ()=>LeaveRoomImplementation(item.eventChoice);
         }
 
         EventSelectionUI eventSelectionUI = EventSelectionUI.Instance;
         eventSelectionUI.AddChoices(currentGameEventInfo.leaveRoomEventChoiceParams);
         eventSelectionUI.Activate();
-        eventSelectionUI.onChoiceSelected += LeaveRoomImplementation;
     }
 
-    public void LeaveRoomImplementation(EventSelectionUI.ChoiceParams choiceParams)
+    public void LeaveRoomImplementation(EGameEvent targetEvent)
     {
-        EventSelectionUI.EventChoiceParams targetParams = choiceParams as EventSelectionUI.EventChoiceParams;
-        EGameEvent targetEvent = targetParams == null ? EGameEvent.None : targetParams.eventChoice;
+        Debug.Assert(targetEvent != EGameEvent.None);
         ProcessEvent(targetEvent);
-        EventSelectionUI.Instance.onChoiceSelected -= LeaveRoomImplementation;
         RoomManager roomManager = RoomManager.Instance;
-        roomManager.InitializeRoom(currentGameEventInfo.roomTileInfo);
+        roomManager.InitializeCombatRoom();
 
         InitializeEvent();
     }
@@ -99,7 +114,7 @@ public class GameEvent : Singleton<GameEvent>
     void ProcessEvent(EGameEvent eventChoice)
     {
         currentEventDataIndex += 1;
-        currentGameEventInfo = gameEventData.gameEventInfos[currentEventDataIndex];
+        currentGameEventInfo = currentEventData.gameEventInfos[currentEventDataIndex];
         currentGameEventInfo.eventType = eventChoice;
         
         onUpdateCurrentGameEventInfo?.Invoke(currentGameEventInfo);

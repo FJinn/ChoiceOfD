@@ -128,6 +128,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   movement: {fileID: 8360782029551718090}
   characterCollider: {fileID: 2366472144314505136}
+  body: {fileID: 8684592869757244164}
+  animContoller: {fileID: 8302995831212718596}
+  speed: 4
   containedActions:
   - m_SelectedTypeName: BasicAction, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
       PublicKeyToken=null
@@ -137,7 +140,6 @@ MonoBehaviour:
       PublicKeyToken=null
     typeName: Action_SelfHeal
     m_IsInit: 1
-  speed: 4
   visionRadius: 1
 --- !u!1001 &3421350101654220692
 PrefabInstance:

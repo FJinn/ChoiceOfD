@@ -7,7 +7,6 @@ using UnityEngine.UI;
 public class EventSelectionUI : Singleton<EventSelectionUI>
 {
     public Action onEventSelectionUIItemDeactivate;
-    public Action<ChoiceParams> onChoiceSelected;
 
     [SerializeField] GameObject canvas;
     [SerializeField] EventSelectionUIItem[] eventItems;
@@ -16,6 +15,7 @@ public class EventSelectionUI : Singleton<EventSelectionUI>
     public class ChoiceParams
     {
         public string displayText;
+        public Action callback;
     }
 
     [Serializable]

@@ -5,14 +5,12 @@ using UnityEngine;
 
 public class RoomManager : Singleton<RoomManager>
 {
-    [SerializeField] GameObject roomPrefab;
+    [SerializeField] GameObject combatRoomPrefab;
+    [SerializeField] GameObject tavernPrefab;
     [SerializeField] Transform roomGroupParent;
-    [SerializeField] float roomTileHeight;
 
     List<RoomTileObjectInfo> spawnedRooms = new();
     RoomTile currentRoom;
-
-    public float halfRoomTileHeight => roomTileHeight * 0.5f;
 
     class RoomTileObjectInfo
     {
@@ -20,18 +18,35 @@ public class RoomManager : Singleton<RoomManager>
         public RoomTile roomTile;
     }
 
-    public void InitializeRoom(RoomTileInfo roomTileInfo)
+    public float GetCurrentRoomTileHalfHeight()
+    {
+        Debug.Assert(currentRoom != null);
+        return currentRoom.halfRoomTileHeight;
+    }
+
+    // ToDo:: better structure
+    public void InitializeTavernRoom()
+    {
+        InitializeRoom(tavernPrefab);
+    }
+
+    public void InitializeCombatRoom()
+    {
+        InitializeRoom(combatRoomPrefab);
+    }
+
+    public void InitializeRoom(GameObject roomPrefab)
     {
         if(currentRoom != null)
         {
             DeinitializeRoom();
         }
 
-        RoomTileObjectInfo found = spawnedRooms.Find(x => !x.obj.activeInHierarchy);
+        RoomTileObjectInfo found = spawnedRooms.Find(x => !x.obj.activeInHierarchy && x.obj == roomPrefab);
 
         if(found != null)
         {
-            found.roomTile.Initialize(roomTileInfo);
+            found.roomTile.Initialize();
             currentRoom = found.roomTile;
             return;
         }
@@ -40,7 +55,7 @@ public class RoomManager : Singleton<RoomManager>
         RoomTile newRoomTile = newObj.GetComponent<RoomTile>();
         RoomTileObjectInfo newInfo = new RoomTileObjectInfo(){obj = newObj, roomTile = newRoomTile};
         spawnedRooms.Add(newInfo);
-        newRoomTile.Initialize(roomTileInfo);
+        newRoomTile.Initialize();
         currentRoom = newRoomTile;
     }
 
@@ -50,6 +65,7 @@ public class RoomManager : Singleton<RoomManager>
         currentRoom = null;
     }
 
+    public RoomTile GetCurrentRoom() => currentRoom;
     public void PlayerCharactersEnterRoom(Action callback)
     {
         currentRoom.PlayerCharactersEnterRoom(callback);

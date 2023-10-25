@@ -21,7 +21,7 @@ public class BasicEnemy : CharacterBase
 
         if(health <= 0)
         {
-            KillCharacter();
+            KillCharacter(null);
         }
     }
 
@@ -44,11 +44,11 @@ public class BasicEnemy : CharacterBase
         }
     }
     
-    public override void EnterRoom(RoomTile roomTile, Transform enterTransform, Action callback)
+    public override void EnterRoom(RoomTile roomTile, Action callback, Transform enterTransform)
     {
-        base.EnterRoom(roomTile, enterTransform, callback);
+        base.EnterRoom(roomTile, callback, enterTransform);
 
-        foreach(var item in roomTile.GetAllPlayersInRoom())
+        foreach(var item in PlayerController.Instance.GetAllPlayerCharacters())
         {
             enemyCombatData.AddAggressionTarget(item);
         }
@@ -97,6 +97,7 @@ public class BasicEnemy : CharacterBase
 
         Vector3 goToPos = enemyCombatData.GetGoToPos(transform.position, forwardLength + distanceToTarget);
         // ToDo: Handle the case where goToPos is last seen position -> update goal and reselect action!
+        // CleanUp: Design changes, there is not movement and is complete turn based
         movement.MoveTo_Speed(goToPos, enemyCombatData.speed, ()=>
         {
             // Debug.LogError($"Use Action: {action.actionName}!");
@@ -121,7 +122,7 @@ public class BasicEnemy : CharacterBase
     {
     }
 
-    public override void KillCharacter()
+    public override void KillCharacter(Action callback)
     {
         CombatManager.Instance.UnRegisterFromCombat(gameObject);
     }

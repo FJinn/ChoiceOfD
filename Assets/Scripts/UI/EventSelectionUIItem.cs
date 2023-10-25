@@ -46,9 +46,8 @@ public class EventSelectionUIItem : MonoBehaviour
     void OnSelected()
     {
         EventSelectionUI eventSelectionUI = EventSelectionUI.Instance;
-        eventSelectionUI.onChoiceSelected?.Invoke(choiceParamsCache);
+        choiceParamsCache.callback?.Invoke();
 
-        Debug.Log("OnSelected : " + gameObject.name);
         eventSelectionUI.Deactivate();
     }
 }
