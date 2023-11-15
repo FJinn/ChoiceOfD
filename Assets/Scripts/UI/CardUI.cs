@@ -4,169 +4,112 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System;
-using Unity.VisualScripting;
+using UnityEngine.UIElements;
 
-public class CardUI : Singleton<CardUI>
+using Button = UnityEngine.UIElements.Button;
+
+public class CardUI : MonoBehaviour
 {
-    [SerializeField] CardUIItem cardUIItemPrefab;
-    [SerializeField] GameObject cardUICanvas;
-    [SerializeField] GameObject cardPanelFrame;
-    
-    [Header("Class Card Zone")]
-    [SerializeField] CardPanelInfo[] cardPanels;
+    public UIDocument uiDocument;
+    [SerializeField] CardUIItem cardUIItem;
 
-    [Serializable]
-    public class CardPanelInfo
+    public bool isSelectToTakeDamage {private set; get;}
+
+    Button confirmButton;
+
+    static List<ECharacterClass> selectableClasses;
+    public bool IsSelectableClass(ECharacterClass target)
     {
-        public Transform transform;
-        [ReadOnly] public CharacterClassInfo characterClass;
-
-        public bool IsActivated() => transform.gameObject.activeInHierarchy;
-
-        public void Activate(CharacterClassInfo _characterClass)
-        {
-            transform.gameObject.SetActive(true);
-            characterClass = _characterClass;
-        }
-
-        public void Deactivate()
-        {
-            transform.gameObject.SetActive(false);
-            characterClass = null;
-        }
+        return selectableClasses == null || selectableClasses.Count <= 0 || selectableClasses.Exists(x => x == target);
     }
 
-    List<CardUIItem> spawnedCards = new List<CardUIItem>();
-    CardUIItem currentSelected;
-    public bool isSelectToRemove {private set; get;}
-
-    protected override void Awake()
+    void Awake()
     {
-        base.Awake();
-
-        foreach(var item in cardPanels)
-        {
-            item.Deactivate();
-        }
-
-        cardPanelFrame.SetActive(false);
-        cardUICanvas.SetActive(false);
+        confirmButton = uiDocument.rootVisualElement.Q<Button>("ConfirmButton");
+        confirmButton.style.display = DisplayStyle.None;
     }
 
     void OnEnable()
     {
-        PlayerController.onSelectAction += OnUpdateCurrentAction;
         PlayerController.onEquipAction += OnAddAction;
-        PlayerController.onRemoveAction += OnRemoveAction;
-        PlayerController.onSelectActionToRemove += UpdateSelectionType;
+        PlayerController.onUnequipAction += OnRemoveAction;
+        PlayerController.onSelectActionToTakeDamage += SelectToTakeDamage;
+        PlayerController.onSelectActionToSwap += SelectActionToSwap;
+        PlayerController.onSelectActionToUse += SelectActionToUse;
         PlayerParty.onAddCharacterToParty += OnCharacterAddedToParty;
         PlayerParty.onRemoveCharacterFromParty += OnCharacterRemovedFromParty;
     }
 
     void OnDisable()
     {
-        PlayerController.onSelectAction -= OnUpdateCurrentAction;
         PlayerController.onEquipAction -= OnAddAction;
-        PlayerController.onRemoveAction -= OnRemoveAction;
-        PlayerController.onSelectActionToRemove -= UpdateSelectionType;
+        PlayerController.onUnequipAction -= OnRemoveAction;
+        PlayerController.onSelectActionToTakeDamage -= SelectToTakeDamage;
+        PlayerController.onSelectActionToSwap -= SelectActionToSwap;
+        PlayerController.onSelectActionToUse -= SelectActionToUse;
         PlayerParty.onAddCharacterToParty -= OnCharacterAddedToParty;
         PlayerParty.onRemoveCharacterFromParty -= OnCharacterRemovedFromParty;
     }
 
-    void UpdateSelectionType()
+    void SelectToTakeDamage(List<ECharacterClass> allowedClasses)
     {
-        isSelectToRemove = true;
+        isSelectToTakeDamage = true;
+        selectableClasses = allowedClasses;
+        SetConfirmButton(true, "Take Damage");
+    }
+
+    void SelectActionToSwap(List<ECharacterClass> allowedClasses)
+    {
+        selectableClasses = allowedClasses;
+        SetConfirmButton(true, "Swap");
+    }
+
+    void SelectActionToUse(List<ECharacterClass> allowedClasses)
+    {
+        selectableClasses = allowedClasses;
+        SetConfirmButton(true, "Use");
     }
 
     // temp till the ui/ux design is confirmed on how to select and use action
-    public void ConfrimSelection()
+    public void ConfirmSelection()
     {
-        PlayerController.SelectActionData(currentSelected.GetActionData());
+        PlayerController.SelectActionData(cardUIItem.GetCurrentSelectedActionData());
+        selectableClasses = null;
+        cardUIItem.Deselect();
     }
-
-    public void SetCurrentSelectedCardUIItem(CardUIItem target)
+    
+    public void SetConfirmButton(bool active, string displayText)
     {
-        if(currentSelected != null && currentSelected != target)
+        if(confirmButton.style.display == DisplayStyle.None && active)
         {
-            currentSelected.Deselect();
+            confirmButton.clicked += ConfirmSelection;
+        }
+        else if(confirmButton.style.display == DisplayStyle.Flex && !active)
+        {
+            confirmButton.clicked -= ConfirmSelection;
         }
 
-        currentSelected = target;
-    }
-
-    void OnUpdateCurrentAction(ActionData currentActionData)
-    {
-        if(currentActionData == null)
-        {
-            currentSelected?.Deselect();
-            return;
-        }
-
-        var found = spawnedCards.Find(x => x.IsActivated() && x.IsCachedActionData(currentActionData));
-        
-        if(found == null)
-        {
-            Debug.LogError($"Cannot find {currentActionData.action.actionName} in spawned card! Skipping function!");
-            return;
-        }
-        found.Select();
+        confirmButton.style.display = active ? DisplayStyle.Flex : DisplayStyle.None;
+        confirmButton.text = displayText;
     }
 
     void OnAddAction(ActionData target)
     {
-        CardPanelInfo foundPanel = cardPanels.Find(x => x.characterClass.characterClassType == target.belongToCharacterClass);
-
-        CardUIItem card = GetCardUIItem(foundPanel.transform);
-        card.Initialize(target);
-        spawnedCards.Add(card);
+        cardUIItem.AddCard(target);
     }
 
     void OnRemoveAction(ActionData target)
     {
-        var found = spawnedCards.Find(x => x.IsActivated() && x.IsCachedActionData(target));
-
-        if(found == null)
-        {
-            Debug.LogError($"Cannot find {target.action.actionName} in spawned card! Skipping function!");
-            return;
-        }
-
-        found.Deinitialize();
+        cardUIItem.RemoveCard(target);
     }
 
-    void OnCharacterAddedToParty(CharacterClassInfo character)
+    void OnCharacterAddedToParty(ECharacterClass characterClass)
     {
-        cardUICanvas.SetActive(true);
-        cardPanelFrame.SetActive(true);
-
-        CardPanelInfo found = cardPanels.Find(x => !x.IsActivated());
-        Debug.Assert(found != null);
-        found.Activate(character);
+        cardUIItem.InitializeCharacterCardUI(characterClass);
     }
 
-    void OnCharacterRemovedFromParty(CharacterClassInfo character)
+    void OnCharacterRemovedFromParty(ECharacterClass characterClass)
     {
-        CardPanelInfo found = cardPanels.Find(x => x.characterClass == character);
-        Debug.Assert(found != null);
-        found.Deactivate();
-
-        if(!cardPanels.Exists(x => x.IsActivated()))
-        {
-            cardPanelFrame.SetActive(false);
-            cardUICanvas.SetActive(false);
-        }
-    }
-
-    CardUIItem GetCardUIItem(Transform panelTransform)
-    {
-        CardUIItem found = spawnedCards.Find(x => !x.IsActivated());
-        if(found != null)
-        {
-            return found;
-        }
-
-        CardUIItem newObj = Instantiate(cardUIItemPrefab, panelTransform);
-        spawnedCards.Add(newObj);
-        return newObj;
+        cardUIItem.DeinitializeCharacterCardUI(characterClass);
     }
 }

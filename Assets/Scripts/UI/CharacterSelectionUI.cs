@@ -38,7 +38,7 @@ public class CharacterSelectionUI : MonoBehaviour, IPointerClickHandler
         uiCanvas.SetActive(true);
     }
 
-    void Deactivate()
+    public void Deactivate()
     {
         uiCanvas.SetActive(false);
     }

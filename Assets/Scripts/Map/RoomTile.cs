@@ -2,37 +2,56 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Cinemachine;
+using Unity.VisualScripting;
 using UnityEngine;
-
+using UnityEngine.Assertions;
 using Random = UnityEngine.Random;
 
 public class RoomTile : MonoBehaviour
 {
     [SerializeField] float radius = 10f;
+    [SerializeField] CinemachineVirtualCamera roomCam;
 
     [SerializeField] Vector3 center = Vector3.zero;
     [SerializeField] float roomTileHeight = 0.5f;
     [SerializeField] Transform[] playersStartPoints;
-    [SerializeField] Transform[] enemyStartPoints;
+    [SerializeField] TargetLayout enemyLayout;
 
     List<CharacterBase> charactersInRoom = new();
 
     public float GetRadius() => radius;
     public Vector3 GetCenter() => center;
     public float halfRoomTileHeight => roomTileHeight * 0.5f;
+    CinemachineBasicMultiChannelPerlin perlinNoise;
 
-    public void Initialize()
+    Coroutine shakeCameraRoutine;
+
+    int charactersExitedRoomAmount;
+
+    void Awake()
+    {
+        perlinNoise = roomCam.GetCinemachineComponent<CinemachineBasicMultiChannelPerlin>();
+    }
+
+    public void Initialize(Action callback)
     {
         gameObject.SetActive(true);
+        roomCam.m_Priority = 10;
+        callback?.Invoke();
     }
 
-    public void Deinitialize()
+    public void Deinitialize(Action callback)
     {
-        CharactersExitRoom();
-        gameObject.SetActive(false);
+        CharactersExitRoom(()=>
+        {
+            gameObject.SetActive(false);
+            roomCam.m_Priority = 0;
+            callback?.Invoke();
+        });
     }
 
-    public void PlayerCharactersEnterRoom(Action callback)
+    public void PlayerCharactersEnterRoom(bool preplacedInRoom, Action callback)
     {
         PlayerController player = GameManager.Instance.GetPlayer();
         int playerCharactersCount = player.GetPlayerPartyCharactersCount();
@@ -45,20 +64,40 @@ public class RoomTile : MonoBehaviour
         player.EnterRoom(this, ()=>
         {
             callback?.Invoke();
-        }, playersStartPoints);
-        AddCharactersIntoList(player.GetAllPlayerCharacters());
+        }, preplacedInRoom, playersStartPoints);
+
+        foreach(var item in player.GetAllPlayerCharacters())
+        {
+            if(item.GetCharacterClassInfo() == null)
+            {
+                continue;
+            }
+            AddCharactersIntoList(item);
+        }
     }
 
-    void CharactersExitRoom()
+    void CharactersExitRoom(Action callback)
     {
+        charactersExitedRoomAmount = 0;
         for(int i=0; i<charactersInRoom.Count; ++i)
         {
-            charactersInRoom[i].ExitRoom(this);
+            charactersInRoom[i].ExitRoom(this, ()=>OnCharacterExitsRoom(callback));
         }
-        charactersInRoom.Clear();
     }
 
-    void AddCharactersIntoList(params CharacterBase[] targets)
+    void OnCharacterExitsRoom(Action callback)
+    {
+        charactersExitedRoomAmount += 1;
+        if(charactersExitedRoomAmount < charactersInRoom.Count)
+        {
+            return;
+        }
+
+        charactersInRoom.Clear();
+        callback?.Invoke();
+    }
+
+    public void AddCharactersIntoList(params CharacterBase[] targets)
     {
         foreach(var target in targets)
         {
@@ -73,44 +112,44 @@ public class RoomTile : MonoBehaviour
     }
 
     // ToDo:: handle room without enemy
-    public void SpawnRoomObjects(Action callback)
+    public void SpawnRoomObjects(bool isCombat, Action callback)
     {
         GameEventInfo eventInfo = GameEvent.Instance.GetCurrentGameEventInfo();
         if(eventInfo == null)
         {
             return;
         }
-        SpawnEnemiesIntoRoom(eventInfo.basicEnemyAmount, callback);
+        SpawnEnemiesIntoRoom(isCombat, callback);
     }
 
-    void SpawnEnemiesIntoRoom(int amount, Action callback)
+    void SpawnEnemiesIntoRoom(bool isCombat, Action callback)
     {
-        int basicEnemyAmount = amount;
-        if(basicEnemyAmount <= 0)
+        if(!isCombat)
         {
             callback?.Invoke();
             return;
         }
 
         int characterDoneEnterCount = 0;
-        for(int i=0; i<basicEnemyAmount; ++i)
+        for(int i=0; i<enemyLayout.totalSlots; ++i)
         {
-            if(i > enemyStartPoints.Length-1)
+            EEnemyType targetType = enemyLayout.GetEnemyTypeOfSlot(i);
+            if(targetType == EEnemyType.None)
             {
-                Debug.LogError($"Haven't have the design for where spawning enemies more than enemy start points! At index: {i}");
-                return;
+                continue;
             }
-            BasicEnemy newBasicEnemy = SpawnManager.Instance.GetBasicEnemy();
-            newBasicEnemy.Initialize();
-            newBasicEnemy.EnterRoom(this, ()=> 
+            CharacterBase newEnemy = SpawnManager.Instance.GetEnemyObject(targetType).character;
+            newEnemy.Initialize();
+            newEnemy.EnterRoom(this, ()=> 
             {
+                enemyLayout.LinkSpawnedCharacterToSlot(i, newEnemy);
                 characterDoneEnterCount+=1;
-                if(characterDoneEnterCount == basicEnemyAmount)
+                if(characterDoneEnterCount == enemyLayout.GetTotalEnemyCount())
                 {
                     callback?.Invoke();
                 }
-            }, enemyStartPoints[i]);
-            AddCharactersIntoList(newBasicEnemy);
+            }, enemyLayout.GetEnemySlotTransform(i), true);
+            AddCharactersIntoList(newEnemy);
         }
     }
 
@@ -121,8 +160,34 @@ public class RoomTile : MonoBehaviour
         
         foreach(var item in charactersInRoom)
         {
-            combatManager.RegisterIntoCombat(item.gameObject);
+            combatManager.RegisterIntoCombat(item);
         }
+    }
+
+    public void ShakeCamera(float intensity, float shakeTime)
+    {
+        perlinNoise.m_AmplitudeGain = intensity;
+        if(shakeCameraRoutine != null)
+        {
+            StopCoroutine(shakeCameraRoutine);
+        }
+        shakeCameraRoutine = StartCoroutine(ShakeWaitTime(shakeTime));
+    }
+
+    IEnumerator ShakeWaitTime(float shakeTime)
+    {
+        float waitTime = 0;
+        while(waitTime < shakeTime)
+        {
+            waitTime += Time.deltaTime;
+            yield return null;
+        }
+        ResetShakeIntensity();
+    }
+
+    void ResetShakeIntensity()
+    {
+        perlinNoise.m_AmplitudeGain = 0;
     }
 
 #if UNITY_EDITOR

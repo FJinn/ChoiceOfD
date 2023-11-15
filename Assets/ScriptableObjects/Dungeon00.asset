@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5ff9efcc469b9174181f6ca3564804cb, type: 3}
+  m_Name: Dungeon00
+  m_EditorClassIdentifier: 
+  enemyFormations:
+  - frontSlotA: 1
+    frontSlotB: 0
+    frontSlotC: 1
+    middleSlotA: 0
+    middleSlotB: 0
+    middleSlotC: 1
+    backSlotA: 0
+    backSlotB: 0
+    backSlotC: 0

@@ -7,12 +7,14 @@ using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.InputSystem;
 
-public class PlayerController : Singleton<PlayerController>, ICombat
+public class PlayerController : Singleton<PlayerController>
 {
-    public static Action<ActionData> onSelectAction;
     public static Action<ActionData> onEquipAction;
-    public static Action<ActionData> onRemoveAction;
-    public static Action onSelectActionToRemove;
+    public static Action<ActionData> onUnequipAction;
+    public static Action<List<ECharacterClass>> onSelectActionToTakeDamage;
+    public static Action<List<ECharacterClass>> onSelectActionToSwap;
+    public static Action<List<ECharacterClass>> onSelectActionToUse;
+    public static Action<ActionBase> onWaitToSelectTarget;
 
     [SerializeField] CharacterClassData allPlayerCharactersData;
 
@@ -20,41 +22,99 @@ public class PlayerController : Singleton<PlayerController>, ICombat
     [SerializeField] PlayerParty playerParty;
     [SerializeField, ReadOnly] PlayerCharacter[] playerCharacters = new PlayerCharacter[4];
     public PlayerCharacter[] GetAllPlayerCharacters() => playerCharacters;
+    PlayerCharacter GetPlayerCharacterWithClass(ECharacterClass characterClass) => playerCharacters.Find(x => x.GetCharacterClassInfo().characterClassType == characterClass);
 
     PlayerCharacter currentCharacter;
-    bool stopInput;
-
-    CharacterBase currentTarget;
+    List<CharacterBase> currentTargets = new();
     int characterEnteredRoomCount;
     Action charactersEnteredRoomCallback;
+    static bool canSelectCooldownActionData = true;
 
+    static List<ECharacterClass> currentActionSelectionRequiredClasses = new();
     static ActionData selectedActionData;
     int currentReceivingDamage;
     Coroutine selectActionDataRoutine;
+    Coroutine selectTargetsRoutine;
 
-    public void ReduceHealth(int reduceAmount, Action callback)
+    public void AddHealth(int amount, List<ECharacterClass> targetClasses, Action callback)
+    {
+        GameManager.Instance.PauseCombat();
+
+        currentActionSelectionRequiredClasses.Clear();
+        if(targetClasses != null)
+        {
+            foreach(ECharacterClass item in targetClasses)
+            {
+                currentActionSelectionRequiredClasses.Add(item);
+            }
+        }
+
+        WaitToSelectActionData(()=>
+        {
+            selectedActionData.AddHealth(amount);
+            PlayerCharacter selectedCharacter = GetPlayerCharacterWithClass(selectedActionData.belongToCharacterClass);
+            VFXManager.Instance.PlayVFX(VFXManager.EGeneralVFXType.GainHealth, selectedCharacter.transform.position, ()=>
+            {
+                selectedActionData = null;
+                GameManager.Instance.ResumeCombat();
+                callback?.Invoke();
+            });
+
+            /*
+            WaitToSelectTargets(()=>
+            {
+                selectedActionData.AddHealth(amount);
+                selectedActionData = null;
+                GameManager.Instance.ResumeCombat();
+                callback?.Invoke();
+            });
+            */
+        });
+    }
+
+    public void ReduceHealth(int reduceAmount, List<ECharacterClass> targetClasses, Action callback)
     {
         GameManager.Instance.PauseCombat();
 
         currentReceivingDamage = reduceAmount;
-
-        onSelectActionToRemove?.Invoke();
+        
+        currentActionSelectionRequiredClasses.Clear();
+        if(targetClasses != null)
+        {
+            foreach(ECharacterClass item in targetClasses)
+            {
+                currentActionSelectionRequiredClasses.Add(item);
+            }
+        }
+        onSelectActionToTakeDamage?.Invoke(currentActionSelectionRequiredClasses);
 
         WaitToSelectActionData(()=>
         {
-            // update ui to remove UI type with current action data
-            onSelectAction?.Invoke(selectedActionData);
+            ActionTakeDamage();
+            callback?.Invoke();
         });
     }
 
     public static void SelectActionData(ActionData target)
     {
+        if(!canSelectCooldownActionData && target.IsInCooldown())
+        {
+            return;
+        }
         selectedActionData = target;
     }
 
     public void Initialize()
     {
-        SetStopInput(true);
+    }
+
+    // ToDo:: better structure
+    public void AllCharactersSpawnInTavern()
+    {
+        foreach(PlayerCharacter character in playerCharacters)
+        {
+            character.SpawnInTavern();
+        }
     }
 
     public void EquipAction(ActionBase _action, ECharacterClass targetClass)
@@ -64,7 +124,10 @@ public class PlayerController : Singleton<PlayerController>, ICombat
             playerParty.EquipAction(_action, targetClass);
             return;
         }
-
+        
+        currentActionSelectionRequiredClasses.Clear();
+        currentActionSelectionRequiredClasses.Add(targetClass);
+        onSelectActionToSwap?.Invoke(currentActionSelectionRequiredClasses);
         WaitToSelectActionData(()=>
         {
             playerParty.RemoveAction(selectedActionData);
@@ -138,24 +201,30 @@ public class PlayerController : Singleton<PlayerController>, ICombat
 
     public int GetPlayerPartyCharactersCount() => playerParty.characterInPartyCount;
 
-    public void ActionTakeDamage(InputAction.CallbackContext callbackContext)
+    public void ActionTakeDamage()
     {
         ActionData currentActionData = selectedActionData;
 
-        bool isActionDead = currentActionData.action.ReduceHealth(currentReceivingDamage);
+        bool isActionDead = currentActionData.ReduceHealth(currentReceivingDamage);
         currentReceivingDamage = 0;
 
         if(!isActionDead)
         {
-            GameManager.Instance.ResumeCombat();
+            PlayerCharacter selectedCharacter = GetPlayerCharacterWithClass(selectedActionData.belongToCharacterClass);
+            VFXManager.Instance.PlayVFX(VFXManager.EGeneralVFXType.LoseHealth, selectedCharacter.transform.position, ()=>
+            {
+                GameManager.Instance.ResumeCombat();
+                selectedActionData = null;
+            });
+
             return;
         }
 
         playerParty.RemoveAction(currentActionData);
+        selectedActionData = null;
 
         if(playerParty.characterInPartyCount <= 0)
         {
-            selectedActionData = null;
             KillCharacter();
             return;
         }
@@ -163,20 +232,23 @@ public class PlayerController : Singleton<PlayerController>, ICombat
         GameManager.Instance.ResumeCombat();
     }
 
-    public void EnterRoom(RoomTile roomTile, Action callback, params Transform[] enterTransforms)
+    public void EnterRoom(RoomTile roomTile, Action callback, bool preplacedInRoom, params Transform[] enterTransforms)
     {
         charactersEnteredRoomCallback = callback;
-        characterEnteredRoomCount = playerCharacters.Length;
+        characterEnteredRoomCount = 0;
         for(int i=0; i<playerCharacters.Length; ++i)
         {
-            playerCharacters[i].EnterRoom(roomTile, ()=>AllCharacterEnteredRoom(), enterTransforms[i]);
+            // Debug.LogError(playerCharacters[i] + " entering room!");
+            playerCharacters[i].EnterRoom(roomTile, ()=>AllCharactersEnteredRoom(), enterTransforms[i], preplacedInRoom);
         }
     }
 
     // enterRoom callback only call once instead of multiple times
-    void AllCharacterEnteredRoom()
+    void AllCharactersEnteredRoom()
     {
-        if(characterEnteredRoomCount < playerCharacters.Length)
+        characterEnteredRoomCount += 1;
+        int totalEnteredRoom = playerCharacters.FindAll(x => x.GetCharacterClassInfo() != null).Length;
+        if(characterEnteredRoomCount < totalEnteredRoom)
         {
             return;
         }
@@ -187,32 +259,120 @@ public class PlayerController : Singleton<PlayerController>, ICombat
         characterEnteredRoomCount = 0;
     }
 
-    void SetStopInput(bool value)
+    public void SetCurrentCharacter(PlayerCharacter character)
     {
-        stopInput = value;
+        currentCharacter = character;
     }
 
-    public void DoAction()
+    public void ClearTargets()
     {
-        if(stopInput)
+        currentTargets.Clear();
+    }
+
+    public void SelectAction()
+    {
+        Debug.Log("Player:: Select Action");
+        currentActionSelectionRequiredClasses.Clear();
+        onSelectActionToUse?.Invoke(currentActionSelectionRequiredClasses);
+        canSelectCooldownActionData = false;
+        WaitToSelectActionData(()=>
         {
+            switch(selectedActionData.action.GetSelectableTargetType())
+            {
+                case ActionBase.ESelectableTargetType.Action:
+                    DoAction(true);
+                    canSelectCooldownActionData = true;
+                    break;
+                case ActionBase.ESelectableTargetType.Character:
+                    WaitToSelectTargets(()=>
+                    {
+                        DoAction(false);
+                        canSelectCooldownActionData = true;
+                    });
+                    break;
+            }
+            
+        });
+    }
+
+    public void WaitToSelectTargets(Action callback)
+    {
+        Debug.Log("Player:: Select Targets");
+        if(selectTargetsRoutine != null)
+        {
+            StopCoroutine(selectTargetsRoutine);
+        }
+        selectTargetsRoutine = StartCoroutine(WaitToSelectTargetsUpdate(()=>
+        {
+            callback?.Invoke();
+        }));
+    }
+
+    // ToDo:: better structure
+    public void ClickToSelectTargets(CharacterBase target)
+    {
+        if(currentTargets.Contains(target))
+        {
+            currentTargets.Remove(target);
+            Debug.Log($"{target.gameObject} is removed from player target");
             return;
         }
 
+        Debug.Log($"{target.gameObject} is added to player target");
+        currentTargets.Add(target);
+    }
+
+    IEnumerator WaitToSelectTargetsUpdate(Action callback)
+    {
+        onWaitToSelectTarget?.Invoke(selectedActionData.action);
+        
+        int targetNeeded = selectedActionData.action.GetTargetCounts();
+        while(currentTargets.Count < targetNeeded)
+        {
+            yield return null;
+        }
+        callback?.Invoke();
+    }
+
+    public void DoAction(bool playerAsTarget)
+    {
         if(selectedActionData == null)
         {
             Debug.LogError("There is no selected Action Data!");
             return;
         }
+        Debug.Log("Player:: Do Action");
+        if(playerAsTarget)
+        {
+            ClickToSelectTargets(playerCharacters[0]);
+        }
+        selectedActionData.action.SetTargets(currentTargets);
 
-        Debug.Assert(currentTarget != null);
-        SetStopInput(true);
+        if(currentTargets.Count > 1)
+        {
+            selectedActionData.DoAction(currentCharacter);
+            selectedActionData = null;
+            currentTargets.Clear();
+            return;
+        }
 
-        currentCharacter.MoveTo_Speed(currentTarget.forwardPosition, ()=>
+        Debug.Log(currentCharacter.name + " move to and do action :: " + selectedActionData.action.actionName);
+        selectedActionData.DoAction(currentCharacter);
+        selectedActionData = null;
+        currentTargets.Clear();
+        return;
+
+        currentCharacter.MoveTo_Speed(currentTargets[0].forwardPosition, ()=>
         {
             selectedActionData.action.DoAction(currentCharacter);
             selectedActionData = null;
         });
+    }
+
+    public void ReduceAllActionDataCooldown(ECharacterClass characterClass, int amount = 1)
+    {
+        // playerParty.ReduceAllActionsCooldown(amount);
+        playerParty.ReduceCharacterAllActionsCooldown(characterClass, amount);
     }
 
     void KillCharacter()
@@ -225,29 +385,4 @@ public class PlayerController : Singleton<PlayerController>, ICombat
             }
         });
     }
-#region Combat
-    public void IStartTurn()
-    {
-        SetStopInput(false);
-    }
-
-    public void ISelectAction()
-    {
-        SetStopInput(false);
-    }
-
-    public void ICleanUpAction()
-    {
-        currentCharacter.ICleanUpAction();
-    }
-
-    public void ITurnEnd()
-    {
-    }
-
-    public void ICombatStarted()
-    {
-        SetStopInput(true);
-    }
-#endregion
 }

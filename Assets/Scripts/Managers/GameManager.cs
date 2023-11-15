@@ -16,12 +16,8 @@ public class GameManager : Singleton<GameManager>
     void Start()
     {
         player.Initialize();
-        //player.ObtainCharacter(ECharacterClass.Fighter);
-/*
-        RoomTileInfo roomTileInfo = new RoomTileInfo(){radius = 10f, basicEnemyAmount = 5};
-        RoomManager.Instance.InitializeRoom(roomTileInfo);
-        RoomManager.Instance.SpawnObjectsInRoom(null);
-        */
+        player.AllCharactersSpawnInTavern();
+
         GameStart();
     }
 
@@ -29,7 +25,6 @@ public class GameManager : Singleton<GameManager>
     {
         if(Input.GetKeyUp(KeyCode.P))
         {
-
         EventSelectionUI eventSelectionUI = EventSelectionUI.Instance;
         EventSelectionUI.ChoiceParams fighter = new EventSelectionUI.ChoiceParams(){displayText = "Fighter", callback = ()=>player.ObtainCharacter(ECharacterClass.Fighter, false)};
         EventSelectionUI.ChoiceParams priestess = new EventSelectionUI.ChoiceParams(){displayText = "Priestess", callback = ()=>player.ObtainCharacter(ECharacterClass.Priestess, false)};
@@ -42,8 +37,10 @@ public class GameManager : Singleton<GameManager>
 
     public void GameStart()
     {
-        RoomManager.Instance.InitializeTavernRoom();
-        RoomManager.Instance.PlayerCharactersEnterRoom(()=>RoomManager.Instance.SpawnObjectsInRoom(null));
+        RoomManager.Instance.InitializeTavernRoom(()=>
+        {
+            RoomManager.Instance.PlayerCharactersEnterRoom(true, ()=>RoomManager.Instance.SpawnObjectsInRoom(false, null));
+        });
     }
 
     public void GameOver()

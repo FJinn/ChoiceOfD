@@ -44,7 +44,7 @@ public class DungeonReception : MonoBehaviour, IPointerClickHandler
         foreach(var item in gameEventDatas)
         {
             DungeonSelectionUIItem spawned = Instantiate(dungeonSelectionUIItemPrefab, dungeonSelectionUIItemParent);
-            spawned.Initialize(item);
+            spawned.Initialize(item, this);
             dungeonSelectionUIItems.Add(spawned);
         }
     }

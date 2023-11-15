@@ -8,8 +8,8 @@ using UnityEngine.Assertions;
 public class PlayerParty : MonoBehaviour
 {
     public static Action<CharacterClassInfo> onObtainedCharacter;
-    public static Action<CharacterClassInfo> onAddCharacterToParty;
-    public static Action<CharacterClassInfo> onRemoveCharacterFromParty;
+    public static Action<ECharacterClass> onAddCharacterToParty;
+    public static Action<ECharacterClass> onRemoveCharacterFromParty;
 
     CharacterClassInfo[] charactersInParty = new CharacterClassInfo[4]{null, null, null, null};
     List<CharacterClassInfo> obtainedCharacters = new();
@@ -52,7 +52,7 @@ public class PlayerParty : MonoBehaviour
             {
                 characterInPartyCount += 1;
                 charactersInParty[i] = found;
-                onAddCharacterToParty?.Invoke(found);
+                onAddCharacterToParty?.Invoke(found.characterClassType);
                 charactersInParty[i].EquipDefaultActions();
                 return true;
             }
@@ -75,7 +75,7 @@ public class PlayerParty : MonoBehaviour
             if(charactersInParty[i] != null && charactersInParty[i].characterClassType == eCharacterClass)
             {
                 characterInPartyCount -= 1;
-                onRemoveCharacterFromParty?.Invoke(charactersInParty[i]);
+                onRemoveCharacterFromParty?.Invoke(charactersInParty[i].characterClassType);
                 charactersInParty[i] = null;
                 return;
             }
@@ -114,6 +114,22 @@ public class PlayerParty : MonoBehaviour
         if(foundInfo.IsEquippedActionEmpty())
         {
             RemoveCharacterFromParty(actionData.belongToCharacterClass, true);
+        }
+    }
+
+    public void ReduceCharacterAllActionsCooldown(ECharacterClass character, int amount = 1)
+    {
+        CharacterClassInfo foundInfo = charactersInParty.Find(x => x.characterClassType == character);
+        Debug.Assert(foundInfo != null);
+
+        foundInfo.ReduceEquippedActionsCooldown(amount);
+    }
+
+    public void ReduceAllActionsCooldown(int amount = 1)
+    {
+        foreach(var item in charactersInParty)
+        {
+            item.ReduceEquippedActionsCooldown(amount);
         }
     }
 }

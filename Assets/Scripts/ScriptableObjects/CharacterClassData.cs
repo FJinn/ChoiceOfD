@@ -18,6 +18,7 @@ public class CharacterClassData : ScriptableObject
     {
         public GameObject characterVisualPrefab;
         public ECharacterClass classOf;
+        public Texture2D profileTexture;
     }
 
     public CharacterPrefabInfo[] allPlayerCharacterPrefabs;
@@ -25,6 +26,7 @@ public class CharacterClassData : ScriptableObject
 
     // ToDo: better structure
     public GameObject GetPlayerCharacterPrefabWithClassType(ECharacterClass targetClass) => allPlayerCharacterPrefabs.Find(x => x.classOf == targetClass).characterVisualPrefab;
+    public Texture2D GetPlayerCharacterTexture2DWithClassType(ECharacterClass targetClass) => allPlayerCharacterPrefabs.Find(x => x.classOf == targetClass).profileTexture;
     public CharacterClassInfo GetDefaultCharacterClassInfo(ECharacterClass targetClass) => characterClassInfoScriptableObjects.Find(x => x.characterClassInfo.characterClassType == targetClass).characterClassInfo;
 }
 
@@ -46,7 +48,7 @@ public class CharacterClassInfo
     {
         for(int i=0; i< defaultActions.Length; ++i)
         {
-            EquipAction(ActionsManager.Instance.GetAction(defaultActions[i]));
+            EquipAction(ActionsManager.Instance.GetAction(defaultActions[i]), true);
         }
     }
 
@@ -60,10 +62,10 @@ public class CharacterClassInfo
             return;
         }
 
-        EquipAction(ActionsManager.Instance.GetAction(actionType));
+        EquipAction(ActionsManager.Instance.GetAction(actionType), true);
     }
 
-    public void EquipAction(ActionBase _action)
+    public void EquipAction(ActionBase _action, bool initializeActionData = false)
     {
         int targetIndex = -1;
         for(int i=0; i<equippedActions.Length; ++i)
@@ -76,6 +78,10 @@ public class CharacterClassInfo
             }
         }
 
+        if(initializeActionData)
+        {
+            equippedActions[targetIndex].Initialize();
+        }
         equippedActions[targetIndex].action.InitializeAction();
         equippedActions[targetIndex].belongToCharacterClass = characterClassType;
 
@@ -94,7 +100,7 @@ public class CharacterClassInfo
                 equippedActions[i].action = null;
                 equippedActions[i].belongToCharacterClass = ECharacterClass.None;
                 
-                PlayerController.onRemoveAction?.Invoke(actionData);
+                PlayerController.onUnequipAction?.Invoke(actionData);
                 return;
             }
         }
@@ -125,14 +131,84 @@ public class CharacterClassInfo
 
         return true;
     }
+
+    public void ReduceEquippedActionsCooldown(int amount)
+    {
+        foreach(var item in equippedActions)
+        {
+            item.ReduceCooldownTurn(amount);
+        }
+    }
 }
 
 [Serializable]
 public class ActionData
 {
+    public Action onHealthUpdate;
+    public Action<int> onCooldownTurnChanged;
+
     public ActionBase action;
     public ECharacterClass belongToCharacterClass;
     public int obtainedIndex;
+
+    public bool canBeSelected {get; private set;}
+    public int currentHealth {get; private set;}
+    public int currentCooldownTurn {get; private set;} = 0;
+    public bool IsInCooldown() => currentCooldownTurn > 0;
+
+    public void Initialize()
+    {
+        currentHealth = action.GetInitialHealth();
+        canBeSelected = true;
+    }
+
+    public void SetCanBeSelected(bool value)
+    {
+        canBeSelected = value;
+    }
+
+    public void DoAction(CharacterBase _instigator)
+    {
+        action.DoAction(_instigator);
+        currentCooldownTurn = action.GetDefaultCooldownTurn();
+        onCooldownTurnChanged?.Invoke(currentCooldownTurn);
+    }
+
+    public void ReduceCooldownTurn(int amount = 1)
+    {
+        currentCooldownTurn -= amount;
+        onCooldownTurnChanged?.Invoke(currentCooldownTurn);
+    }
+
+#region Health
+    public bool AddHealth(int value)
+    {
+        Debug.Assert(value > 0);
+        int resultValue = currentHealth + value;
+        if(resultValue > action.GetMaxHealth())
+        {
+            return false;
+        }
+        currentHealth = resultValue;
+        onHealthUpdate?.Invoke();
+        return true;
+    }
+
+    /// <summary>
+    /// return true if health > 0
+    /// return false if health <= 0
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    public bool ReduceHealth(int value)
+    {
+        Debug.Assert(value > 0);
+        currentHealth -= value;
+        onHealthUpdate?.Invoke();
+        return currentHealth <= 0;
+    }
+
+#endregion
 }
 
 public enum ECharacterClass

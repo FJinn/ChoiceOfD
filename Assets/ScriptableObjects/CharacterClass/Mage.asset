@@ -21,11 +21,12 @@ MonoBehaviour:
       m_IsInit: 1
     equippedActions:
     - action: {fileID: 0}
-      belongToCharacterClass: 0
-      obtainedIndex: 0
+      belongToCharacterClass: 3
+      obtainedIndex: 2
     - action: {fileID: 0}
       belongToCharacterClass: 0
       obtainedIndex: 0
     - action: {fileID: 0}
       belongToCharacterClass: 0
       obtainedIndex: 0
+    obtainedActions: []

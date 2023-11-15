@@ -20,9 +20,6 @@ public class GameEventInfo
 
     [HideInInspector] public EGameEvent eventType;
 
-    [Header("Combat")]
-    public int basicEnemyAmount;
-
     [Header("Leave Room")]
     public EventSelectionUI.EventChoiceParams[] leaveRoomEventChoiceParams;
 }

@@ -17,8 +17,8 @@ MonoBehaviour:
   gameEventInfos:
   - eventName: Leave Tavern
     eventDescription: Just left tavern and hit the road
-    eventType: 0
-    basicEnemyAmount: 5
+    eventType: 3
+    basicEnemyAmount: 1
     leaveRoomEventChoiceParams:
     - displayText: Scout
       eventChoice: 1
@@ -26,10 +26,32 @@ MonoBehaviour:
       eventChoice: 2
     - displayText: Combat
       eventChoice: 3
-  - eventName: On the Road
+  - eventName: On the Road 1
     eventDescription: Keep walking
     eventType: 0
-    basicEnemyAmount: 5
+    basicEnemyAmount: 2
+    leaveRoomEventChoiceParams:
+    - displayText: Scout
+      eventChoice: 1
+    - displayText: Campfire
+      eventChoice: 2
+    - displayText: Combat
+      eventChoice: 3
+  - eventName: On the Road 2
+    eventDescription: Keep walking
+    eventType: 0
+    basicEnemyAmount: 3
+    leaveRoomEventChoiceParams:
+    - displayText: Scout
+      eventChoice: 1
+    - displayText: Campfire
+      eventChoice: 2
+    - displayText: Combat
+      eventChoice: 3
+  - eventName: On the Road 3
+    eventDescription: Keep walking
+    eventType: 0
+    basicEnemyAmount: 4
     leaveRoomEventChoiceParams:
     - displayText: Scout
       eventChoice: 1

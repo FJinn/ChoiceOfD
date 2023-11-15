@@ -37,6 +37,12 @@ public class Movement : MonoBehaviour
         return true;
     }
 
+    public void SetPositionAndRotation(Vector3 target, Quaternion rotation)
+    {
+        transform.position = target;
+        transform.rotation = rotation;
+    }
+
     /// <summary>
     /// Didn't account for animation and rotation
     /// </summary>

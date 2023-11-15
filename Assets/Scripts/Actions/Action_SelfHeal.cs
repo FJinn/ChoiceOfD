@@ -6,15 +6,8 @@ using UnityEngine;
 public class Action_SelfHeal : ActionBase
 {
     protected override void MainAction_Implementation(Action callback)
-    { 
-        if(instigator == null)
-        {
-            Debug.LogError($"Instigator: {instigator}");
-            return;
-        }
-        instigator.AddHealth(1);
-        Debug.Log($"{instigator.name} uses Action: {actionName}.");
-        callback?.Invoke();
+    {
+        instigator.AddHealth(1, null, callback);
     }
 
     protected override void SubAction_Implementation(Action callback)

@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class PlayerCharacter : CharacterBase
@@ -15,10 +16,15 @@ public class PlayerCharacter : CharacterBase
     bool isAtInitialRoomPos;
     bool isMovingToInitialRoomPos;
 
+    static readonly int idleAnimID = Animator.StringToHash("HappyIdle");
     static readonly int runningAnimID = Animator.StringToHash("IsRunning");
     static readonly int mainActionAnimID = Animator.StringToHash("MainAction");
     static readonly int defeatedAnimID = Animator.StringToHash("KneelingDefeat");
-    static readonly int spawnAnimID = Animator.StringToHash("Spawn");
+    static readonly int sitIdleAnimID = Animator.StringToHash("SitIdle");
+    static readonly int sitToStandAnimID = Animator.StringToHash("SitToStand");
+    static readonly int waveHipHopDanceAnimID = Animator.StringToHash("WaveHipHopDance");
+    int spawnAnimID;
+    int leaveRoomAnimID;
 
     void Awake()
     {
@@ -26,7 +32,6 @@ public class PlayerCharacter : CharacterBase
         body.isKinematic = true;
         characterClassInfo = null;
     }
-
 #region Movement
     public void MoveTo_Speed(Vector3 pos, Action callback)
     {
@@ -59,10 +64,12 @@ public class PlayerCharacter : CharacterBase
     {
         transform.position = new Vector3(transform.position.x, lengthFromGround, transform.position.z);
 
+        SetTexture2D(characterClassData.GetPlayerCharacterTexture2DWithClassType(characterClassInfo.characterClassType));
+
         GameObject targetPrefab = characterClassData.GetPlayerCharacterPrefabWithClassType(characterClassInfo.characterClassType); 
         SpawnVisualObject(targetPrefab);
     }
-#region Spawn Object
+#region Spawn
     void SpawnVisualObject(GameObject targetPrefab)
     {
         if(visualObject != null)
@@ -77,19 +84,46 @@ public class PlayerCharacter : CharacterBase
             return;
         }
         animContoller.SetAnimator(animator);
-        animContoller.PlayAnimation(spawnAnimID, ()=>MoveToInitialRoomPos(null));
+        RoomManager.Instance.AddCharacterIntoCurrentRoom(this);
+
+        animContoller.PlayAnimation(spawnAnimID, ()=>
+        {
+            if(spawnAnimID == sitIdleAnimID)
+            {
+                return;
+            }
+            MoveToInitialRoomPos(null);
+        });
+    }
+
+    // ToDo:: better stucture
+    public void SpawnInTavern()
+    {
+        spawnAnimID = sitIdleAnimID;
+        leaveRoomAnimID = sitToStandAnimID;
     }
 #endregion
 
 #region Combat
-    public override void IStartTurn()
+    public override bool IStartTurn()
     {
-        Debug.LogWarning($"{characterClassInfo.characterClassType} started turn!");
+        PlayerController playerController = PlayerController.Instance;
+        playerController.SetCurrentCharacter(this);
+        playerController.ReduceAllActionDataCooldown(characterClassInfo.characterClassType);
+        return base.IStartTurn();
     }
 
     public override void ISelectAction()
     {
-        Debug.LogWarning($"{characterClassInfo.characterClassType} selected action!");
+        PlayerController.Instance.SelectAction();
+    }
+
+    public override void ICleanUpAction()
+    {
+        base.ICleanUpAction();
+        Debug.LogWarning($"{characterClassInfo.characterClassType} clean up action!");
+        PlayerController.Instance.SetCurrentCharacter(null);
+        PlayerController.Instance.ClearTargets();
     }
 
     public override void ITurnEnd()
@@ -103,28 +137,42 @@ public class PlayerCharacter : CharacterBase
     }
 #endregion
 
-    public override void EnterRoom(RoomTile roomTile, Action callback, Transform enterTransform)
+    public override void EnterRoom(RoomTile roomTile, Action callback, Transform enterTransform, bool preplacedInRoom)
     {
-        base.EnterRoom(roomTile, callback, enterTransform);
-
-        Vector3 targetPos = enterTransform.position;
-        targetPos.y = lengthFromGround;
-
-        initialRoomPosition = targetPos;
+        base.EnterRoom(roomTile, callback, enterTransform, preplacedInRoom);
+        if(preplacedInRoom)
+        {
+            movement.SetPositionAndRotation(enterTransform.position, enterTransform.rotation);
+            callback?.Invoke();
+            return;
+        }
 
         if(visualObject == null)
         {
+            callback?.Invoke();
             return;
         }
         MoveToInitialRoomPos(callback);
     }
 
-    public override void ExitRoom(RoomTile roomTile)
+    public override void ExitRoom(RoomTile roomTile, Action callback)
     {
-        base.ExitRoom(roomTile);
+        // Debug.LogError($"{gameObject.name} exits room!");
 
         isAtInitialRoomPos = false;
         isMovingToInitialRoomPos = false;
+
+        if(RoomManager.Instance.IsInTavern())
+        {
+            animContoller.PlayAnimation(leaveRoomAnimID, ()=>
+            {
+                animContoller.PlayAnimation(idleAnimID, null);
+                callback?.Invoke();
+            });
+            return;
+        }
+        movement.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+        callback?.Invoke();
     }
 
     void MoveToInitialRoomPos(Action callback)
@@ -141,18 +189,38 @@ public class PlayerCharacter : CharacterBase
             isAtInitialRoomPos = true;
             isMovingToInitialRoomPos = false;
             SetHasBoundary(true);
-            callback?.Invoke();
-        });
-    }
-    
-    public override void KillCharacter(Action callback)
-    {
-        animContoller.PlayAnimation(defeatedAnimID, ()=>
-        {
-            CombatManager.Instance.UnRegisterFromCombat(gameObject);
-            
+            movement.SetPositionAndRotation(initialRoomPosition, initialRoomRotation);
             callback?.Invoke();
         });
     }
 
+    public override int GetHealth()
+    {
+        int totalHealth = 0;
+        foreach(var item in characterClassInfo.equippedActions)
+        {
+            totalHealth += item.currentHealth;
+        }
+        return totalHealth;
+    }
+
+    public override void AddHealth(int addValue, List<ECharacterClass> specificClasses = null, Action callback = null)
+    {
+        PlayerController.Instance.AddHealth(addValue, specificClasses, callback);
+    }
+
+    public override void ReduceHealth(int reduceAmount, List<ECharacterClass> specificClasses = null, Action callback = null)
+    {
+        PlayerController.Instance.ReduceHealth(reduceAmount, specificClasses, callback);
+    }
+
+    public override void KillCharacter(Action callback)
+    {
+        animContoller.PlayAnimation(defeatedAnimID, ()=>
+        {
+            CombatManager.Instance.UnRegisterFromCombat(this);
+            
+            callback?.Invoke();
+        });
+    }
 }

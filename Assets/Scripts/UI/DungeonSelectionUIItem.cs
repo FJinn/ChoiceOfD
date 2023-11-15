@@ -11,12 +11,16 @@ public class DungeonSelectionUIItem : MonoBehaviour
 
     [SerializeField, ReadOnly] GameEventData cacheEventData;
 
-    public void Initialize(GameEventData gameEventData)
+    public void Initialize(GameEventData gameEventData, DungeonReception _dungeonReception)
     {
         cacheEventData = gameEventData;
         displayText.text = cacheEventData.eventTitle;
 
-        button.onClick.AddListener(()=>GameEvent.Instance.ToDungeonEvent(cacheEventData));
+        button.onClick.AddListener(()=>
+        {
+            GameEvent.Instance.ToDungeonEvent(cacheEventData);
+            _dungeonReception.Deactivate();
+        });
     }
 
     public void Deinitialize()

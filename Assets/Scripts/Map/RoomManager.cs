@@ -10,74 +10,120 @@ public class RoomManager : Singleton<RoomManager>
     [SerializeField] Transform roomGroupParent;
 
     List<RoomTileObjectInfo> spawnedRooms = new();
-    RoomTile currentRoom;
+    RoomTileObjectInfo currentRoomInfo;
 
     class RoomTileObjectInfo
     {
         public GameObject obj;
         public RoomTile roomTile;
+        public ERoomType roomType;
+    }
+    
+    // ToDo:: Better structure
+    public enum ERoomType
+    {
+        Tavern = 0,
+        CombatRoom = 1
     }
 
-    public float GetCurrentRoomTileHalfHeight()
+    public float GetCurrentRoomTileGroundWorldPosY()
     {
-        Debug.Assert(currentRoom != null);
-        return currentRoom.halfRoomTileHeight;
+        return currentRoomInfo.roomTile.halfRoomTileHeight + currentRoomInfo.roomTile.transform.position.y; //currentRoomInfo.roomTile.groundWorldPosY;
     }
 
     // ToDo:: better structure
-    public void InitializeTavernRoom()
+    bool isInTavern;
+    public bool IsInTavern()
     {
-        InitializeRoom(tavernPrefab);
+        return isInTavern;
     }
 
-    public void InitializeCombatRoom()
+    // ToDo:: better structure
+    public void InitializeTavernRoom(Action callback)
     {
-        InitializeRoom(combatRoomPrefab);
+        isInTavern = true;
+        InitializeRoom(ERoomType.Tavern, callback);
     }
 
-    public void InitializeRoom(GameObject roomPrefab)
+    public void InitializeCombatRoom(Action callback)
     {
-        if(currentRoom != null)
+        InitializeRoom(ERoomType.CombatRoom, ()=>
         {
-            DeinitializeRoom();
-        }
+            isInTavern = false;
+            callback?.Invoke();
+        });
+    }
 
-        RoomTileObjectInfo found = spawnedRooms.Find(x => !x.obj.activeInHierarchy && x.obj == roomPrefab);
+    public void InitializeRoom(ERoomType roomType, Action callback)
+    {
+        if(currentRoomInfo != null)
+        {
+            DeinitializeRoom(()=> 
+            {
+                IntializeRoom_Implementation(roomType, callback);
+            });
+            return;
+        }
+        IntializeRoom_Implementation(roomType, callback);
+    }
+
+    void IntializeRoom_Implementation(ERoomType _roomType, Action callback)
+    {
+        RoomTileObjectInfo found = spawnedRooms.Find(x => !x.obj.activeInHierarchy && x.roomType == _roomType);
 
         if(found != null)
         {
-            found.roomTile.Initialize();
-            currentRoom = found.roomTile;
+            currentRoomInfo = found;
+            found.roomTile.Initialize(callback);
             return;
         }
 
-        GameObject newObj = Instantiate(roomPrefab, roomGroupParent);
+        GameObject targetPrefab = _roomType switch
+        {
+            ERoomType.Tavern => tavernPrefab,
+            ERoomType.CombatRoom => combatRoomPrefab,
+            _ => null
+        };
+
+        GameObject newObj = Instantiate(targetPrefab, roomGroupParent);
         RoomTile newRoomTile = newObj.GetComponent<RoomTile>();
-        RoomTileObjectInfo newInfo = new RoomTileObjectInfo(){obj = newObj, roomTile = newRoomTile};
+        RoomTileObjectInfo newInfo = new RoomTileObjectInfo(){obj = newObj, roomTile = newRoomTile, roomType = _roomType};
         spawnedRooms.Add(newInfo);
-        newRoomTile.Initialize();
-        currentRoom = newRoomTile;
+        currentRoomInfo = newInfo;
+        newRoomTile.Initialize(callback);
     }
 
-    void DeinitializeRoom()
+    void DeinitializeRoom(Action callback)
     {
-        currentRoom.Deinitialize();
-        currentRoom = null;
+        currentRoomInfo.roomTile.Deinitialize(()=>
+        {
+            currentRoomInfo = null;
+            callback?.Invoke();
+        });
     }
 
-    public RoomTile GetCurrentRoom() => currentRoom;
-    public void PlayerCharactersEnterRoom(Action callback)
+    public void PlayerCharactersEnterRoom(bool preplacedInRoom, Action callback)
     {
-        currentRoom.PlayerCharactersEnterRoom(callback);
+        currentRoomInfo.roomTile.PlayerCharactersEnterRoom(preplacedInRoom, callback);
     }
 
-    public void SpawnObjectsInRoom(Action callback)
+    public void AddCharacterIntoCurrentRoom(params CharacterBase[] characters)
     {
-        currentRoom.SpawnRoomObjects(callback);
+        currentRoomInfo.roomTile.AddCharactersIntoList(characters);
+    }
+
+    public void SpawnObjectsInRoom(bool isCombat, Action callback)
+    {
+        currentRoomInfo.roomTile.SpawnRoomObjects(isCombat,callback);
     }
 
     public void TriggerCurrentRoomCombat()
     {
-        currentRoom.TriggerCombat();
+        currentRoomInfo.roomTile.TriggerCombat();
+    }
+
+    public void ShakeRoomCamera(float intensity, float duration)
+    {
+        currentRoomInfo.roomTile.ShakeCamera(intensity, duration);
     }
 }

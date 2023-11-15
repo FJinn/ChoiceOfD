@@ -16,17 +16,21 @@ MonoBehaviour:
   - characterVisualPrefab: {fileID: 5868136738819788924, guid: e2a006dbf97b0d744aa555c3376b49de,
       type: 3}
     classOf: 1
+    profileTexture: {fileID: 2800000, guid: b75bd157f9adecf4e9ebd949c4c66b69, type: 3}
   - characterVisualPrefab: {fileID: 5868136738819788924, guid: e2a006dbf97b0d744aa555c3376b49de,
       type: 3}
     classOf: 3
+    profileTexture: {fileID: 2800000, guid: 9dd848eb89ed78345b7a98e8f383e0f3, type: 3}
   - characterVisualPrefab: {fileID: 5868136738819788924, guid: e2a006dbf97b0d744aa555c3376b49de,
       type: 3}
     classOf: 4
+    profileTexture: {fileID: 2800000, guid: 4d8bea9905cf79c4b8cd9f763aa0360b, type: 3}
   - characterVisualPrefab: {fileID: 5868136738819788924, guid: e2a006dbf97b0d744aa555c3376b49de,
       type: 3}
     classOf: 5
+    profileTexture: {fileID: 2800000, guid: bc51c20172679f64db6f323ef22bbcdf, type: 3}
   characterClassInfoScriptableObjects:
   - {fileID: 11400000, guid: ca05579068a8d874992967fac1093532, type: 2}
-  - {fileID: 11400000, guid: a3b627597fbbe3f4ebaae6be2e94191e, type: 2}
+  - {fileID: 11400000, guid: 10179050c01a66441a7d8e92984299a7, type: 2}
   - {fileID: 11400000, guid: 03e05dcfb3621004993c6477bbb11f68, type: 2}
   - {fileID: 11400000, guid: 4f26fa1a4754fdf4593c756e2d781e8f, type: 2}

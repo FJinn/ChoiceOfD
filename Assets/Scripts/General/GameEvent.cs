@@ -19,12 +19,12 @@ public class GameEvent : Singleton<GameEvent>
         currentEventDataIndex = 0;
     }
 
-    void InitializeEvent()
+    void InitializeEvent(bool isCombat)
     {
         RoomManager roomManager = RoomManager.Instance;
-        roomManager.PlayerCharactersEnterRoom(()=>
+        roomManager.PlayerCharactersEnterRoom(false, ()=>
         {
-            roomManager.SpawnObjectsInRoom(()=> 
+            roomManager.SpawnObjectsInRoom(isCombat, ()=> 
             {
                 onRoomReady?.Invoke();
             });
@@ -33,14 +33,18 @@ public class GameEvent : Singleton<GameEvent>
 
     public void ToDungeonEvent(GameEventData gameEventData)
     {
+        Debug.Assert(PlayerController.Instance.GetPlayerPartyCharactersCount() > 0);
+        
         currentEventData = gameEventData;
         currentGameEventInfo = currentEventData.gameEventInfos[0];
         currentGameEventInfo.eventType = gameEventData.firstEventType;
         onUpdateCurrentGameEventInfo?.Invoke(currentGameEventInfo);
 
         RoomManager roomManager = RoomManager.Instance;
-        roomManager.InitializeCombatRoom();
-        InitializeEvent();
+        roomManager.InitializeCombatRoom(()=>
+        {
+            InitializeEvent(true);
+        });
     }
 
     public void StartEvent()
@@ -69,6 +73,11 @@ public class GameEvent : Singleton<GameEvent>
 
     public void LeaveRoomSelection()
     {
+        if(currentGameEventInfo.eventType == EGameEvent.Combat)
+        {
+            CombatManager.Instance.onCombatEnded -= LeaveRoomSelection;
+        }
+
         if(currentEventData == null)
         {
             Debug.LogError("There is no current event data! Skip LeaveRoomSelection()!");
@@ -103,9 +112,15 @@ public class GameEvent : Singleton<GameEvent>
         Debug.Assert(targetEvent != EGameEvent.None);
         ProcessEvent(targetEvent);
         RoomManager roomManager = RoomManager.Instance;
-        roomManager.InitializeCombatRoom();
 
-        InitializeEvent();
+        if(targetEvent != EGameEvent.Combat)
+        {
+            return;
+        }
+        roomManager.InitializeCombatRoom(()=>
+        {
+            InitializeEvent(true);
+        });
     }
 
     /// <summary>
@@ -124,6 +139,7 @@ public class GameEvent : Singleton<GameEvent>
     {
         RoomManager roomManager = RoomManager.Instance;
         roomManager.TriggerCurrentRoomCombat();
+        CombatManager.Instance.onCombatEnded += LeaveRoomSelection;
     }
 
     void StartScoutEvent()

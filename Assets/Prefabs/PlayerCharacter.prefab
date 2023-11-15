@@ -147,4 +147,5 @@ MonoBehaviour:
     - action: {fileID: 0}
       belongToCharacterClass: 0
       obtainedIndex: 0
+    obtainedActions: []
   visualObject: {fileID: 0}

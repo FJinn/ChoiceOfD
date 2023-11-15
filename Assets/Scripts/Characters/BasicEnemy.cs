@@ -5,28 +5,17 @@ using UnityEngine;
 
 public class BasicEnemy : CharacterBase
 {
+    [Header("Basic Eenemy")]
     [SerializeField, TypeSelector(typeof(ActionBase))] List<TypeSelector> containedActions;
-
-    [SerializeField] float visionRadius;
 
     List<ActionBase> availableActions = new();
     AIPlanner planner;
     EnemyCombatData enemyCombatData;
 
-    public override void ReduceHealth(int reduceAmount)
-    {
-        base.ReduceHealth(reduceAmount);
-
-        health -= reduceAmount;
-
-        if(health <= 0)
-        {
-            KillCharacter(null);
-        }
-    }
-
     public override void Initialize()
     {
+        base.Initialize();
+         
         foreach(Type t in containedActions)
         {
             ActionBase found = ActionsManager.Instance.GetAction(t);
@@ -34,7 +23,7 @@ public class BasicEnemy : CharacterBase
             availableActions.Add(found);
         }
 
-        enemyCombatData = new EnemyCombatData(){visionRadius = visionRadius, speed = speed};
+        enemyCombatData = new EnemyCombatData(){speed = speed};
         transform.position = new Vector3(transform.position.x, lengthFromGround, transform.position.z);
 
         if(planner == null)
@@ -44,18 +33,25 @@ public class BasicEnemy : CharacterBase
         }
     }
     
-    public override void EnterRoom(RoomTile roomTile, Action callback, Transform enterTransform)
+    public override void EnterRoom(RoomTile roomTile, Action callback, Transform enterTransform, bool preplacedInRoom)
     {
-        base.EnterRoom(roomTile, callback, enterTransform);
+        base.EnterRoom(roomTile, callback, enterTransform, preplacedInRoom);
 
         foreach(var item in PlayerController.Instance.GetAllPlayerCharacters())
         {
             enemyCombatData.AddAggressionTarget(item);
         }
-        enemyCombatData.UpdateCurrentTargetToMostAggressionTarget();
 
         Vector3 targetPos = enterTransform.position;
         targetPos.y = lengthFromGround;
+        if(preplacedInRoom)
+        {
+            movement.SetPositionAndRotation(enterTransform.position, enterTransform.rotation);
+            movement.SetHasBoundary(true);
+            callback?.Invoke();
+            return;
+        }
+
         characterCollider.enabled = false;
         movement.MoveTo_Duration(targetPos, 1f, ()=> 
         {
@@ -65,57 +61,48 @@ public class BasicEnemy : CharacterBase
         });
     }
 
-    public override void ExitRoom(RoomTile roomTile)
+    public override bool IStartTurn()
     {
-        base.ExitRoom(roomTile);
-    }
-
-    public override void IStartTurn()
-    {
-        Debug.LogWarning("IStartTurn not yet implemented!");
+        return base.IStartTurn();
     }
 
     public override void ISelectAction()
     {
-        enemyCombatData.UpdateCurrentTargetToMostAggressionTarget();
-
-        Goal.EGoal eGoal = Goal.EGoal.KillCharacter;
-        if(enemyCombatData.currentTarget == null)
-        {
-            eGoal = Goal.EGoal.HealCharacter;
-            enemyCombatData.currentTarget = this;
-        }
-        planner.UpdatePlannerGoal(eGoal);
-        // Debug.LogError(planner.currentGoal.GetGoalType());
+        // temp: AssignAction handles everything, pick random action and pick random targets
         ActionBase action = planner.AssignAction(availableActions);
-        float distanceToTarget = action.GetRequiredDistanceToTarget();
-        if(distanceToTarget <= 0)
+
+        if(action.GetTargetCounts() > 1)
         {
+            hasMovedFromAction = false;
+            action.SetTargets(enemyCombatData.GetCurrentTargets());
             action.DoAction(this);
             return;
         }
+        // hasMovedFromAction = true;
+        Debug.Log("Move To and do action:: " + action.actionName);
+        Debug.Log(enemyCombatData.GetCurrentTargets());
+        action.DoAction(this);
 
-        Vector3 goToPos = enemyCombatData.GetGoToPos(transform.position, forwardLength + distanceToTarget);
-        // ToDo: Handle the case where goToPos is last seen position -> update goal and reselect action!
+        return;
+
+        Vector3 goToPos = enemyCombatData.GetGoToPos(transform.position, forwardLength);
         // CleanUp: Design changes, there is not movement and is complete turn based
         movement.MoveTo_Speed(goToPos, enemyCombatData.speed, ()=>
         {
-            // Debug.LogError($"Use Action: {action.actionName}!");
-            // ToDo: check if player within sight, then handle the situation
-            //    planner.UpdatePlannerGoal(Goal.EGoal.HealCharacter);
-            //    action = planner.AssignAction(availableActions);
             action.DoAction(this);
         });
     }
 
     public override void ICleanUpAction()
     {
-        Debug.LogWarning("IActionDone not yet implemented!");
+        base.ICleanUpAction();
+
+        enemyCombatData.ClearCurrentTargets();
     }
 
     public override void ITurnEnd()
     {
-        enemyCombatData.UpdateTargetLastSeenPosition();
+
     }
 
     public override void ICombatStarted()
@@ -124,6 +111,7 @@ public class BasicEnemy : CharacterBase
 
     public override void KillCharacter(Action callback)
     {
-        CombatManager.Instance.UnRegisterFromCombat(gameObject);
+        base.KillCharacter(callback);
+        CombatManager.Instance.UnRegisterFromCombat(this);
     }
 }

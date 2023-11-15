@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Assertions;
 
@@ -11,28 +12,53 @@ using UnityEngine.Assertions;
 
 public abstract class ActionBase : MonoBehaviour
 {
+    public enum ESelectableTargetType
+    {
+        Character = 0,
+        Action = 1
+    }
+
+    public enum ETargetRangeType
+    {
+        Unit = 0,
+        FreeUnit = 1,
+        Row = 2,
+        Column = 3,
+        Diagonal = 4,
+        All = 5
+    }
+
     public string actionName = "";
-    public int initialHealth;
-    public int maxHealth;
-    public int currentHealth {get; private set;}
+    [Header("Player")]
+    [SerializeField] int initialHealth;
+    [SerializeField] int maxHealth;
+    [SerializeField] int defaultCooldownTurn = 1;
+    [SerializeField] ESelectableTargetType selectableTargetType = ESelectableTargetType.Character;
+    [SerializeField] ETargetRangeType actionRange = ETargetRangeType.Unit;
+
+    [Header("General")]
     [SerializeField] GameObject actionPrefab;
-    [SerializeField] ECharacterClass[] belongsToClasses;
-    [SerializeField] protected float requiredDistanceToTarget = 2f;
+    // how many targets can be selected for this action
+    [SerializeField] int targetToBeSelectedCount = 1;
 
     [SerializeField] int actionBaseWeight = 0;
     [SerializeField, EffectsSelector] List<string> effectsTypes;
 
-    public ECharacterClass[] GetBelongsToClasses() => belongsToClasses;
-
-    static List<ActionObjectInfo> actionObjects = new List<ActionObjectInfo>();
+    public ESelectableTargetType GetSelectableTargetType() => selectableTargetType;
+    public ETargetRangeType GetTargetRangeType() => actionRange;
+    public int GetTargetCounts() => targetToBeSelectedCount;
 
     protected CharacterBase instigator;
-    protected CharacterBase[] targets;
+    protected List<CharacterBase> targets;
 
     protected bool isMainAction;
 
     protected abstract void MainAction_Implementation(Action callback);
     protected abstract void SubAction_Implementation(Action callback);
+
+    public int GetInitialHealth() => initialHealth;
+    public int GetMaxHealth() => maxHealth;
+    public int GetDefaultCooldownTurn() => defaultCooldownTurn;
 
     protected virtual void MainAction()
     {
@@ -51,6 +77,27 @@ public abstract class ActionBase : MonoBehaviour
         });
     }
 
+    public void SetTargetCount(int amount)
+    {
+        if(actionRange == ETargetRangeType.Unit || actionRange == ETargetRangeType.FreeUnit)
+        {
+            return;
+        }
+
+        targetToBeSelectedCount = amount;
+    }
+
+    public void SetTargets(List<CharacterBase> _targets)
+    {
+        Debug.Assert(_targets.Count > 0 && _targets.Count <= targetToBeSelectedCount);
+
+        targets = _targets;
+    }
+
+    /// <summary>
+    /// Set target before this
+    /// </summary>
+    /// <param name="_instigator"></param>
     public virtual void DoAction(CharacterBase _instigator)
     {
         if(!Precondition())
@@ -73,6 +120,12 @@ public abstract class ActionBase : MonoBehaviour
 
     public virtual bool Precondition()
     {
+        if(targets.Count > targetToBeSelectedCount)
+        {
+            Debug.LogError($"There is more targets {targets.Count} than allowed:: {targetToBeSelectedCount}!");
+            return false;
+        }
+        
         return true;
     }
 
@@ -85,85 +138,5 @@ public abstract class ActionBase : MonoBehaviour
     {
         return actionBaseWeight;
     }
-
-    public float GetRequiredDistanceToTarget()
-    {
-        return requiredDistanceToTarget;
-    }
-
-    class ActionObjectInfo
-    {
-        public GameObject obj;
-        public Movement movement;
-    }
-
-    protected virtual void CleanUp()
-    {
-    }
-
-    protected void ThrowAwayAction(Vector3 initialPos, Vector3 targetPos)
-    {
-        ActionObjectInfo info = GetActionObjectInfo();
-        info.obj.transform.position = initialPos;
-        float existDuration = 1f;
-        float moveSpeed = 2f;
-        info.movement.MoveToDirection(targetPos, moveSpeed);
-        StartCoroutine(ActionObjectSelfDisappearUpdate(info.obj, existDuration));
-    }
-
-    ActionObjectInfo GetActionObjectInfo()
-    {
-        ActionObjectInfo found = actionObjects.Find(x => !x.obj.activeInHierarchy);
-        if(found != null)
-        {
-            return found;
-        }
-
-        GameObject newObj = Instantiate(actionPrefab, transform);
-        Movement _movement = newObj.GetComponent<Movement>();
-        _movement.SetHasBoundary(false);
-        ActionObjectInfo newInfo = new ActionObjectInfo(){obj = newObj, movement = _movement};
-        actionObjects.Add(newInfo);
-        return newInfo;
-    }
-
-    IEnumerator ActionObjectSelfDisappearUpdate(GameObject self, float disappearDuration)
-    {
-        float counter = 0;
-        
-        while(counter < disappearDuration)
-        {
-            counter += Time.deltaTime;
-            yield return null;
-        }
-        self.SetActive(false);
-    }
-
-#region Health
-    public bool AddHealth(int value)
-    {
-        Debug.Assert(value > 0);
-        int resultValue = currentHealth + value;
-        if(resultValue > maxHealth)
-        {
-            return false;
-        }
-        currentHealth = resultValue;
-        return true;
-    }
-
-    /// <summary>
-    /// return true if health > 0
-    /// return false if health <= 0
-    /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
-    public bool ReduceHealth(int value)
-    {
-        Debug.Assert(value < 0);
-        currentHealth += value;
-        return currentHealth > 0;
-    }
-
-#endregion
+    
 }

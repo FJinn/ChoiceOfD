@@ -3,18 +3,35 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class EnemyCombatData
 {
     public float speed = 1f;
-    public float visionRadius;
-    public CharacterBase currentTarget;
-    Vector3 targetLastSeenPosition;
+    List<CharacterBase> currentTargets = new();
     List<AggressionInfo> aggressionInfos = new();
+
     class AggressionInfo
     {
         public CharacterBase target;
         public int aggressionValue;
+    }
+
+    // temp
+    public void RandomlyPickTargets(int count)
+    {
+        List<CharacterBase> tempList = new();
+        foreach(var item in aggressionInfos)
+        {
+            tempList.Add(item.target);
+        }
+
+        for(int i=0; i<count; ++i)
+        {
+            CharacterBase found = tempList[Random.Range(0, tempList.Count)];
+            currentTargets.Add(found);
+            tempList.Remove(found);
+        }
     }
 
     public void AddAggressionTarget(CharacterBase _target, int _aggressionValue = 0)
@@ -28,21 +45,33 @@ public class EnemyCombatData
         aggressionInfos.Add(new AggressionInfo(){target = _target, aggressionValue = _aggressionValue});
     }
 
-    public void UpdateCurrentTargetToMostAggressionTarget()
+    public void IncreaseAggressionTowards(CharacterBase _target, int _aggressionValue = 1)
     {
-        currentTarget = GetMostAggressionTarget();
+        aggressionInfos.Find(x => x.target == _target).aggressionValue += _aggressionValue;
     }
 
-    public void UpdateTargetLastSeenPosition()
+    public int GetCurrentTargetsCount() => currentTargets.Count;
+    public List<CharacterBase> GetCurrentTargets() => currentTargets;
+
+    public void AddToCurrentTargets(CharacterBase target)
     {
-        if (currentTarget != null && currentTarget.GetHealth() > 0)
-        {
-            targetLastSeenPosition = currentTarget.transform.position;
-        }
-        else
-        {
-            UpdateCurrentTargetToMostAggressionTarget();
-        }
+        Debug.Assert(!currentTargets.Contains(target));
+
+        currentTargets.Add(target);
+    }
+
+    public void RemoveFromCurrentTargets(CharacterBase target)
+    {
+        Debug.Assert(currentTargets.Contains(target));
+
+        currentTargets.Remove(target);
+    }
+
+    // ToDo:: better & clearer structure
+    // for now it is called when action clean up
+    public void ClearCurrentTargets()
+    {
+        currentTargets.Clear();
     }
 
     /// <summary>
@@ -53,20 +82,13 @@ public class EnemyCombatData
     /// <returns></returns>
     public Vector3 GetGoToPos(Vector3 currentPos, float offsetLength = 1)
     {
-        // ToDo: if there is obstacle
-        // currently it is just straight line, need to be more dynamic, to look more intelligent
         // CleanUp: Design changes, there is not movement and is complete turn based
-        if(currentTarget != null && currentTarget.GetHealth() > 0 && DetectCurrentTarget(currentPos))
-        {
-            Vector3 targetPos = currentTarget.transform.position;
-            return targetPos + (currentPos - targetPos).normalized * (offsetLength - currentTarget.forwardLength);
-        }
-        Vector3 result = targetLastSeenPosition;
-        result.y = currentPos.y;
-        return result;
+        var currentTarget = currentTargets[0];
+        Vector3 targetPos = currentTarget.transform.position;
+        return targetPos + (currentPos - targetPos).normalized * (offsetLength - currentTarget.forwardLength);
     }
 
-    CharacterBase GetMostAggressionTarget()
+    public CharacterBase GetMostAggressionTarget()
     {
         AggressionInfo foundInfo = aggressionInfos[0];
         
@@ -82,68 +104,42 @@ public class EnemyCombatData
 
         return foundInfo.target.GetHealth() <= 0 ? null : foundInfo.target;
     }
-
-    bool DetectCurrentTarget(Vector3 currentPos)
-    {
-        Vector3 direction = (currentTarget.transform.position - currentPos).normalized;
-        return Physics.Raycast(currentPos, direction, out RaycastHit hitInfo) && hitInfo.transform.gameObject == currentTarget.gameObject;
-    }
 }
 
 public class AIPlanner
 {
     EnemyCombatData enemyCombatData;
-    public Goal currentGoal;
 
     public void InitializePlanner(EnemyCombatData _enemyCombatData)
     {
         enemyCombatData = _enemyCombatData;
     }
 
-    public void UpdatePlannerGoal(Goal.EGoal goalType = Goal.EGoal.KillCharacter, int targetHP = 0)
+    public void UpdatePlannerGoal()
     {
-        if(currentGoal == null)
-        {
-            currentGoal = new Goal();
-            currentGoal.SetGoal(goalType, enemyCombatData.currentTarget, targetHP);
-            return;
-        }
-
-        if(currentGoal.IsGoalAchieved())
-        {
-            currentGoal.SetGoal(goalType, enemyCombatData.currentTarget, targetHP);
-        }
+        // ToDo:: different priorty planner such as healing, killing etc
+        // ToDo:: pick targets
+        //
+        CharacterBase mostAggressionTarget = enemyCombatData.GetMostAggressionTarget();
+        enemyCombatData.AddToCurrentTargets(mostAggressionTarget);
     }
 
     public ActionBase AssignAction(in List<ActionBase> availableActions)
     {
         ActionBase result = FindAction(availableActions);
+        // ToDo:: better design
+        enemyCombatData.RandomlyPickTargets(result.GetTargetCounts());
+        result.SetTargets(enemyCombatData.GetCurrentTargets());
         return result;
     }
 
     ActionBase FindAction(in List<ActionBase> availableActions)
     {
-        List<ActionBase> possibleRootActions = null;
-        switch(currentGoal.GetGoalType())
-        {
-            case Goal.EGoal.None:
-                break;
-            case Goal.EGoal.KillCharacter:
-                possibleRootActions = availableActions.FindAll(x => x.GetAllEffects().Contains("DamageCharacter"));
-                break;
-            case Goal.EGoal.HealCharacter:
-                possibleRootActions = availableActions.FindAll(x => x.GetAllEffects().Contains("HealCharacter"));
-                break;
-        }
+        // ToDo: better AI Design
+        List<ActionBase> possibleRootActions = availableActions;
 
-
-        if(possibleRootActions == null || possibleRootActions.Count <= 0)
-        {
-            Debug.LogError($"Doesn't have any action the can achieve the goal: {currentGoal.GetGoalType()}! Skipping!");
-            return null;
-        }
-        
-        ActionBase result = possibleRootActions[0];
+        ActionBase result = possibleRootActions[Random.Range(0, possibleRootActions.Count)];
+/*
         for(int i=1; i<possibleRootActions.Count; ++i)
         {
             if(possibleRootActions[i].GetActionWeight() < result.GetActionWeight())
@@ -151,17 +147,7 @@ public class AIPlanner
                 result = possibleRootActions[i];
             }
         }
-
-        return result;
-
-/*      // maybe use GOAP to have more complex mechanics and behaviours
-        List<KeyValuePair<int, ActionBase>> actionWithWeights = new();
-        int currentIndex = 0;
-        if(possibleRootActions[currentIndex].Precondition())
-        {
-            var target = new KeyValuePair<int, ActionBase>(possibleRootActions[currentIndex].GetActionWeight(), possibleRootActions[currentIndex]);
-            actionWithWeights.Add(target);
-        }
 */
+        return result;
     }
 }

@@ -6,6 +6,8 @@ using UnityEngine;
 
 public class CombatManager : Singleton<CombatManager>
 {
+    public float turnProcessDelay = 0.5f;
+
     public Action<List<CombatObjectInfo>> onCombatOrderArranged;
     public Action<CombatObjectInfo> onUnregisterOnCombat;
     public Action onCombatEnded;
@@ -13,11 +15,11 @@ public class CombatManager : Singleton<CombatManager>
     public bool isInCombat {get; private set;}
 
     int combatRoundPassed = 0;
+    int enemyCount;
     
     public class CombatObjectInfo
     {
-        public GameObject obj;
-        public Sprite sprite;
+        public CharacterBase character;
         public string name;
         public int initiateModifier;
         public int initiate;
@@ -63,9 +65,9 @@ public class CombatManager : Singleton<CombatManager>
     /// <param name="_initiateModifier"></param>
     /// <param name="_actionCount"></param>
     /// <param name="initializeTurn"></param>
-    public void RegisterIntoCombat(GameObject _obj, int _initiateModifier = 0, int _actionCount = 1, bool initializeTurn = true)
+    public void RegisterIntoCombat(CharacterBase _character, int _initiateModifier = 0, int _actionCount = 1, bool initializeTurn = true)
     {
-        CombatObjectInfo newInfo = new CombatObjectInfo(){obj = _obj, initiateModifier = _initiateModifier, actionCount = _actionCount, name = _obj.name};
+        CombatObjectInfo newInfo = new CombatObjectInfo(){character = _character, initiateModifier = _initiateModifier, actionCount = _actionCount, name = _character.name};
         newInfo.initiate = ProbabilityManager.RollD20() + newInfo.initiateModifier;
         combatObjectInfos.Add(newInfo);
 
@@ -73,22 +75,26 @@ public class CombatManager : Singleton<CombatManager>
         {
             // ToDo: move this to start combat and differentiate initialize combat or register in middle of combat
             ProcessCombatObjectsInitiate(initializeTurn);
+
+            enemyCount = totalCombatObjects - PlayerController.Instance.GetPlayerPartyCharactersCount();
         }
     }
 
-    public void UnRegisterFromCombat(GameObject _obj)
+    public void UnRegisterFromCombat(CharacterBase _character)
     {
-        CombatObjectInfo found = combatObjectInfos.Find(x => x.obj == _obj);
+        CombatObjectInfo found = combatObjectInfos.Find(x => x.character == _character);
         if(found == null)
         {
-            Debug.LogError($"Could not find object {_obj.name} in combatObjectInfos! Skipping UnRegisterFromCombat()!");
+            Debug.LogError($"Could not find object {_character.name} in combatObjectInfos! Skipping UnRegisterFromCombat()!");
             return;
         }
         onUnregisterOnCombat?.Invoke(found);
         combatObjectInfos.Remove(found);
         totalCombatObjects -= 1;
 
-        if(combatObjectInfos.Count <= 0)
+        enemyCount = _character is PlayerCharacter ? enemyCount : enemyCount - 1;
+
+        if(enemyCount <= 0)
         {
             currentTurnCombatObjectIndex = -1;
             totalCombatObjects = 0;
@@ -98,12 +104,15 @@ public class CombatManager : Singleton<CombatManager>
 
     void EndCombat()
     {
+        Debug.LogError("End combat");
+        combatObjectInfos.Clear();
         onCombatEnded?.Invoke();
         isInCombat = false;
     }
 
     public void ActionStarted()
     {
+        Debug.Log("CombatManager::ActionStarted");
     }
 
     public void ActionEnded()
@@ -113,14 +122,9 @@ public class CombatManager : Singleton<CombatManager>
             return;
         }
 
+        Debug.Log("CombatManager::ActionEnded");
         combatObjectInfos[currentTurnCombatObjectIndex].actionCount -= 1;
-        
-        if(combatObjectInfos[currentTurnCombatObjectIndex].obj.TryGetComponent(out ICombat target))
-        {
-            target.ICleanUpAction();
-        }
-        else
-            Debug.LogError(combatObjectInfos[currentTurnCombatObjectIndex].obj + " has not ICleanUpAction interface! Action did not clean up!");
+        combatObjectInfos[currentTurnCombatObjectIndex].character.ICleanUpAction();
     }
 
     public void ActionDone()
@@ -129,6 +133,8 @@ public class CombatManager : Singleton<CombatManager>
         {
             return;
         }
+
+        Debug.Log("CombatManager::ActionDone");
 
         if(actionDoneDelayRoutie != null)
         {
@@ -139,21 +145,20 @@ public class CombatManager : Singleton<CombatManager>
 
     IEnumerator ActionDoneDelay()
     {
-        float waitDuration = 0.2f;
+        float waitDuration = turnProcessDelay;
         float waitTimer = 0;
         while(waitTimer < waitDuration || pauseCombat)
         {
             waitTimer += Time.deltaTime;
             yield return null;
         }
-        
         if(combatObjectInfos[currentTurnCombatObjectIndex].actionCount <= 0)
         {
             NextCombatObjectTurn();
         }
-        else if(combatObjectInfos[currentTurnCombatObjectIndex].obj.TryGetComponent(out ICombat iCombat))
+        else
         {
-            iCombat.ISelectAction();
+            combatObjectInfos[currentTurnCombatObjectIndex].character.ISelectAction();
         }
     }
 
@@ -165,9 +170,9 @@ public class CombatManager : Singleton<CombatManager>
             return;
         }
 
-        if(combatRoundPassed >= 0 && combatObjectInfos[currentTurnCombatObjectIndex].obj.TryGetComponent(out ICombat iCombat))
+        if(combatRoundPassed >= 0)
         {
-            iCombat.ITurnEnd();
+            combatObjectInfos[currentTurnCombatObjectIndex].character.ITurnEnd();
         }
         
         if(nextCombatObjectTurnRoutine != null)
@@ -192,14 +197,14 @@ public class CombatManager : Singleton<CombatManager>
             combatRoundPassed += 1;
         }
 
-        if(combatObjectInfos[currentTurnCombatObjectIndex].obj.TryGetComponent(out ICombat target))
+        onUpdateCurrentTurnCombatObject?.Invoke(combatObjectInfos[currentTurnCombatObjectIndex]);
+        bool skipTurn = combatObjectInfos[currentTurnCombatObjectIndex].character.IStartTurn();
+        if(skipTurn)
         {
-            onUpdateCurrentTurnCombatObject?.Invoke(combatObjectInfos[currentTurnCombatObjectIndex]);
-            Debug.LogError(combatObjectInfos[currentTurnCombatObjectIndex].name + "'s turn");
-            target.ISelectAction();
+            NextCombatObjectTurn();
+            yield break;
         }
-        else
-            Debug.LogError(combatObjectInfos[currentTurnCombatObjectIndex].obj + " has not ICombat interface! Not changing combat turn!");
+        combatObjectInfos[currentTurnCombatObjectIndex].character.ISelectAction();
     }
 
     void ProcessCombatObjectsInitiate(bool initializeTurn = true)
@@ -208,18 +213,16 @@ public class CombatManager : Singleton<CombatManager>
         onCombatOrderArranged?.Invoke(combatObjectInfos);
         if(initializeTurn)
         {
+            isInCombat = true;
             for(int i=0; i<combatObjectInfos.Count; ++i)
             {
-                combatObjectInfos[i].obj.TryGetComponent(out ICombat iCombat);
-                iCombat.ICombatStarted();
+                combatObjectInfos[i].character.ICombatStarted();
             }
 
             combatRoundPassed = -1;
 
             currentTurnCombatObjectIndex = -1;
             NextCombatObjectTurn();
-
-            isInCombat = true;
         }
     }
 
@@ -246,7 +249,7 @@ public class CombatManager : Singleton<CombatManager>
 
 public interface ICombat
 {
-    public void IStartTurn();
+    public bool IStartTurn();
     public void ISelectAction();
     public void ICleanUpAction();
     public void ITurnEnd();
