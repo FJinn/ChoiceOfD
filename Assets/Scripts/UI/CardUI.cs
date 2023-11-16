@@ -76,6 +76,7 @@ public class CardUI : MonoBehaviour
         PlayerController.SelectActionData(cardUIItem.GetCurrentSelectedActionData());
         selectableClasses = null;
         cardUIItem.Deselect();
+        SetConfirmButton(false, "");
     }
     
     public void SetConfirmButton(bool active, string displayText)

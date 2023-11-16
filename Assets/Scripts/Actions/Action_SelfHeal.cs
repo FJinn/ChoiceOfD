@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+[DisallowMultipleComponent]
 public class Action_SelfHeal : ActionBase
 {
     protected override void MainAction_Implementation(Action callback)

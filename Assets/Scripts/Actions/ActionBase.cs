@@ -9,7 +9,6 @@ using UnityEngine.Assertions;
 *   There is a gameobject that hold all the actions.
 *   Character calls the related action when needed.
 */
-
 public abstract class ActionBase : MonoBehaviour
 {
     public enum ESelectableTargetType
@@ -58,6 +57,11 @@ public abstract class ActionBase : MonoBehaviour
     public int GetInitialHealth() => initialHealth;
     public int GetMaxHealth() => maxHealth;
     public int GetDefaultCooldownTurn() => defaultCooldownTurn;
+
+    void Start()
+    {
+        ActionsManager.Instance.RegisterAction(this);
+    }
 
     protected virtual void MainAction()
     {

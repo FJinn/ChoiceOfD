@@ -1588,6 +1588,7 @@ GameObject:
   - component: {fileID: 1084953721}
   - component: {fileID: 1084953720}
   - component: {fileID: 1084953722}
+  - component: {fileID: 1084953723}
   m_Layer: 0
   m_Name: Actions
   m_TagString: Untagged
@@ -1657,6 +1658,31 @@ MonoBehaviour:
   actionBaseWeight: 0
   effectsTypes:
   - HealCharacter
+--- !u!114 &1084953723
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1084953719}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 65ab50fc1d0d79d418665dc3599ab739, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  actionName: Slash
+  initialHealth: 5
+  maxHealth: 5
+  defaultCooldownTurn: 1
+  selectableTargetType: 0
+  actionRange: 0
+  targetToBeSelectedCount: 1
+  actionBaseWeight: 0
+  effectsTypes:
+  - DamageCharacter
+  damage: 10
+  hitShakeCameraIntensity: 1
+  hitShakeCameraDuration: 0.2
 --- !u!1 &1115836180
 GameObject:
   m_ObjectHideFlags: 0
@@ -2281,9 +2307,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7c5343379fb3ac147b1d961b5f84baa6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  allActions:
-  - {fileID: 1084953720}
-  - {fileID: 1084953722}
+  allActions: []
 --- !u!4 &1364939939
 Transform:
   m_ObjectHideFlags: 0

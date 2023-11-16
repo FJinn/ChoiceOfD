@@ -234,9 +234,10 @@ MonoBehaviour:
   body: {fileID: 8684592869757244164}
   animContoller: {fileID: 8302995831212718596}
   speed: 4
-  initialHealth: 3
+  initialHealth: 5
   maxHealth: 5
   healthBar: {fileID: 1510834538992509263}
+  conditions: []
   containedActions:
   - m_SelectedTypeName: BasicAttack, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
       PublicKeyToken=null

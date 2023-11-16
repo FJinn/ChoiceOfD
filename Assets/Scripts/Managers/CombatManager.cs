@@ -198,7 +198,7 @@ public class CombatManager : Singleton<CombatManager>
         }
 
         onUpdateCurrentTurnCombatObject?.Invoke(combatObjectInfos[currentTurnCombatObjectIndex]);
-        bool skipTurn = combatObjectInfos[currentTurnCombatObjectIndex].character.IStartTurn();
+        bool skipTurn = !combatObjectInfos[currentTurnCombatObjectIndex].character.IStartTurn();
         if(skipTurn)
         {
             NextCombatObjectTurn();

@@ -82,7 +82,10 @@ public abstract class CharacterBase : MonoBehaviour, ICombat
     public virtual int GetHealth(){return health;}
     public virtual void ReduceHealth(int reduceAmount, List<ECharacterClass> specificClasses = null, Action callback = null)
     {
-
+        if(HasShield())
+        {
+            return;
+        }
         health -= reduceAmount;
         UpdateHealthBar(()=>
         {
@@ -166,8 +169,8 @@ public abstract class CharacterBase : MonoBehaviour, ICombat
     {
         float delta = 0;
         float startValue = healthBar.fillAmount;
-        float endValue = newHealth / maxHealth;
-        Debug.LogError(endValue);
+        float endValue = newHealth / (float)maxHealth;
+        
         while(delta < 1)
         {
             delta += Time.deltaTime;

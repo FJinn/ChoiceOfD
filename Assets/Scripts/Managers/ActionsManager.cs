@@ -6,7 +6,12 @@ using UnityEngine;
 
 public class ActionsManager : Singleton<ActionsManager>
 {
-    [SerializeField] List<ActionBase> allActions;
+    [SerializeField, ReadOnly] List<ActionBase> allActions;
+
+    public void RegisterAction(ActionBase target)
+    {
+        allActions.Add(target);
+    }
 
     public ActionBase GetAction(string actionName)
     {
