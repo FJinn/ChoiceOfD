@@ -37,7 +37,6 @@ public abstract class ActionBase : MonoBehaviour
     [SerializeField] ETargetRangeType actionRange = ETargetRangeType.Unit;
 
     [Header("General")]
-    [SerializeField] GameObject actionPrefab;
     // how many targets can be selected for this action
     [SerializeField] int targetToBeSelectedCount = 1;
 

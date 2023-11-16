@@ -3,6 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using Newtonsoft.Json.Serialization;
 using UnityEngine;
+using Unity.VisualScripting;
+
 #if UNITY_EDITOR
 using System.Linq;
 using System.Reflection;
@@ -72,7 +74,7 @@ public class TypeSelectorDrawer : PropertyDrawer
         if (string.IsNullOrEmpty(selectedTypeNameProperty.stringValue) || EditorGUI.EndChangeCheck())
         {
             selectedTypeNameProperty.stringValue = typesFull[newSelectedIndex];
-			typeNameProperty.stringValue = UnityTypeSerializationBinder.TypeToTypeName(types[newSelectedIndex]); ;
+			typeNameProperty.stringValue = UnityTypeSerializationBinder.TypeToTypeName(types[newSelectedIndex]);
 			//selectedTypeNameProperty.serializedObject.Update();
 		}
 

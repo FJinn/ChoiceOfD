@@ -3,8 +3,11 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class BasicAction : ActionBase
+public class Action_Slash : ActionBase
 {
+    public int damage = 1;
+
+    [Header("Player")]
     public float hitShakeCameraIntensity = 1f;
     public float hitShakeCameraDuration = 0.2f;
 
@@ -19,7 +22,7 @@ public class BasicAction : ActionBase
         // if instigator is player
         for(int i=0; i<targets.Count; ++i)
         {
-            targets[i].ReduceHealth(1, null, callback);
+            targets[i].ReduceHealth(damage, null, callback);
         }
 
         if(instigator is PlayerCharacter)

@@ -22,6 +22,7 @@ public class CardUIItem : MonoBehaviour
     public class CardData
     {
         public VisualElement parentPanel;
+        public VisualElement[] cooldownBlocks = new VisualElement[5];
         public ECharacterClass characterClass;
         public Button card;
         public Label healthPoint;
@@ -31,6 +32,9 @@ public class CardUIItem : MonoBehaviour
 
         public void RegisterUpdateHealth() => actionData.onHealthUpdate += UpdateHealth;
         public void UnregisterUpdateHealth() => actionData.onHealthUpdate -= UpdateHealth;
+
+        public void RegisterUpdateCooldownBlock() => actionData.onCooldownTurnChanged += UpdateCooldown;
+        public void UnregisterUpdateCooldownBlock() => actionData.onCooldownTurnChanged -= UpdateCooldown;
 
         public void UpdateHealth()
         {
@@ -44,6 +48,14 @@ public class CardUIItem : MonoBehaviour
                 shakeDistance = 50f
             };
             VisualElementTransitions.Instance.ShakePosition(shakeParams);
+        }
+
+        public void UpdateCooldown(int remainingAmount)
+        {
+            for(int i=cooldownBlocks.Length-1; i>=0; --i)
+            {
+                cooldownBlocks[i].style.display = remainingAmount-1 < i ? DisplayStyle.None : DisplayStyle.Flex;
+            }
         }
     }
 
@@ -66,6 +78,12 @@ public class CardUIItem : MonoBehaviour
                 };
                 target.parentPanel.style.display = DisplayStyle.None;
                 cardDatas[j+i] = target;
+            }
+
+            for(int k=0; k<5; ++k)
+            {
+                cardDatas[i].cooldownBlocks[k] = cardDatas[i].card.Q("CooldownBlock"+k);
+                cardDatas[i].cooldownBlocks[k].style.display = DisplayStyle.None;
             }
         }
     }
@@ -90,6 +108,7 @@ public class CardUIItem : MonoBehaviour
         {
             CardData target = cardDatas[foundIndex+i];
             target.UnregisterUpdateHealth();
+            target.UnregisterUpdateCooldownBlock();
             target.characterClass = ECharacterClass.None;
             target.actionData = null;
             target.card.style.display = DisplayStyle.None;
@@ -109,6 +128,7 @@ public class CardUIItem : MonoBehaviour
     {
         var found = cardDatas.Find(x => x.actionData == _cacheActionData);
         found.UnregisterUpdateHealth();
+        found.UnregisterUpdateCooldownBlock();
         found.characterClass = ECharacterClass.None;
         found.actionData = null;
         found.card.style.display = DisplayStyle.None;
@@ -138,6 +158,7 @@ public class CardUIItem : MonoBehaviour
     {
         target.actionData = targetActionData;
         target.RegisterUpdateHealth();
+        target.RegisterUpdateCooldownBlock();
         target.card.text = targetActionData.action.actionName;
         target.card.clicked += ()=>
         {

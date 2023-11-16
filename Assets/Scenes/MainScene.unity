@@ -1610,13 +1610,14 @@ MonoBehaviour:
   actionName: Basic Attack
   initialHealth: 3
   maxHealth: 5
+  defaultCooldownTurn: 1
   selectableTargetType: 0
   actionRange: 0
-  actionPrefab: {fileID: 0}
   targetToBeSelectedCount: 1
   actionBaseWeight: 0
   effectsTypes:
   - DamageCharacter
+  damage: 1
   hitShakeCameraIntensity: 1
   hitShakeCameraDuration: 0.2
 --- !u!4 &1084953721
@@ -1649,9 +1650,9 @@ MonoBehaviour:
   actionName: Self Heal
   initialHealth: 2
   maxHealth: 3
+  defaultCooldownTurn: 1
   selectableTargetType: 1
   actionRange: 0
-  actionPrefab: {fileID: 0}
   targetToBeSelectedCount: 1
   actionBaseWeight: 0
   effectsTypes:

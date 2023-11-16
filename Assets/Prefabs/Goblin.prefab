@@ -238,9 +238,9 @@ MonoBehaviour:
   maxHealth: 5
   healthBar: {fileID: 1510834538992509263}
   containedActions:
-  - m_SelectedTypeName: BasicAction, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
+  - m_SelectedTypeName: BasicAttack, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
       PublicKeyToken=null
-    typeName: BasicAction
+    typeName: BasicAttack
     m_IsInit: 1
   - m_SelectedTypeName: Action_SelfHeal, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
       PublicKeyToken=null

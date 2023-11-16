@@ -23,6 +23,8 @@ public abstract class CharacterBase : MonoBehaviour, ICombat
     protected bool hasMovedFromAction;
     protected Texture2D characterTexture2D;
 
+    [SerializeField, ReadOnly] protected List<ConditionInfo> conditions;
+
     Coroutine healthBarRoutine;
 
     public float lengthFromGround => characterCollider.bounds.extents.y + RoomManager.Instance.GetCurrentRoomTileGroundWorldPosY();
@@ -30,10 +32,30 @@ public abstract class CharacterBase : MonoBehaviour, ICombat
     public float forwardLength => Vector3.Scale(characterCollider.bounds.extents, transform.forward).magnitude;
     public Vector3 forwardPosition => transform.position + transform.forward * forwardLength;
 
+    [Serializable]
+    public class ConditionInfo
+    {
+        public EBuffType buff;
+        public EDebuffType debuff;
+
+        public int remainingTurns = 0;
+
+        public void ReduceTurn(int amount = 1)
+        {
+            remainingTurns -= amount;
+            if(remainingTurns <= 0)
+            {
+                buff = EBuffType.None;
+                debuff = EDebuffType.None;
+            }
+        }
+    }
+
     public enum EBuffType
     {
         None = 0,
-        DoubleDamage = 1
+        DoubleDamage = 1,
+        Shield = 2
     }
 
     public enum EDebuffType
@@ -45,9 +67,22 @@ public abstract class CharacterBase : MonoBehaviour, ICombat
         Sleep = 4
     }
 
+    protected bool HasShield()
+    {
+        ConditionInfo found = conditions.Find(x => x.buff == EBuffType.Shield);
+        if(found == null)
+        {
+            return false;
+        }
+
+        found.ReduceTurn();
+        return true;
+    }
+
     public virtual int GetHealth(){return health;}
     public virtual void ReduceHealth(int reduceAmount, List<ECharacterClass> specificClasses = null, Action callback = null)
     {
+
         health -= reduceAmount;
         UpdateHealthBar(()=>
         {
