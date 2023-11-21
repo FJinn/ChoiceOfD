@@ -15,9 +15,9 @@ MonoBehaviour:
   characterClassInfo:
     characterClassType: 4
     defaultActions:
-    - m_SelectedTypeName: Action_SelfHeal, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
+    - m_SelectedTypeName: Action_HealSelf, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
         PublicKeyToken=null
-      typeName: Action_SelfHeal
+      typeName: Action_HealSelf
       m_IsInit: 1
     equippedActions:
     - action: {fileID: 0}

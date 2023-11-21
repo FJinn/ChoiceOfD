@@ -19,6 +19,7 @@ public class TargetSelectionSlot : MonoBehaviour, IPointerClickHandler, IPointer
     TargetLayout targetLayout;
 
     public bool HasCharacter() => characterInThisSlot != null;
+    public CharacterBase GetCharacter() => characterInThisSlot;
 
     public void Initialize(TargetLayout _targetLayout, int index)
     {
@@ -75,8 +76,7 @@ public class TargetSelectionSlot : MonoBehaviour, IPointerClickHandler, IPointer
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        PlayerController.Instance.ClickToSelectTargets(characterInThisSlot);
-        targetLayout.DeactivateAllSelection();
+        targetLayout.PointerClicked(this);
     }
 
     public void OnPointerEnter(PointerEventData eventData)

@@ -6,6 +6,7 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class Action_Slash : ActionBase
 {
+    [Header("Slash")]
     public int damage = 1;
 
     [Header("Player")]

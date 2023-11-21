@@ -29,6 +29,7 @@ public class VFXManager : Singleton<VFXManager>
         GameObject vfxObj = GetVFXObject(vfxType);
         vfxObj.transform.position = pos;
         vfxObj.SetActive(true);
+        Debug.LogError("Called PlayVFX:: " + vfxType);
         StartCoroutine(VFXActiveUpdate(vfxObj, callback));
     }
 

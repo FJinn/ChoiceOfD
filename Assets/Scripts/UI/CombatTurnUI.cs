@@ -59,7 +59,7 @@ public class CombatTurnUI : MonoBehaviour
         {
             CombatManager.CombatObjectInfo currentInfo = _allCombatObjectInfos[i];
             CombatTurnUIItem item = GetCombatTurnUIItem();
-            item.Activate(currentInfo.name, currentInfo.character.GetTexture2D());
+            item.Activate(currentInfo, currentInfo.character.GetTexture2D());
             charactersViewContainer.Add(item);
         }
     }
@@ -71,7 +71,7 @@ public class CombatTurnUI : MonoBehaviour
 
     void RemoveCombatUIItem(CombatManager.CombatObjectInfo target)
     {
-        var found = spawnedCombatTurnUIItems.Find(x => x.GetCharacterName() == target.name);
+        var found = spawnedCombatTurnUIItems.Find(x => x.combatInfo == target);
         if(found != null)
         {
             turnUIItemInTransitionsCount += 1;
@@ -85,8 +85,9 @@ public class CombatTurnUI : MonoBehaviour
 
     void UpdateCurrentCombatTurnUIItem(CombatManager.CombatObjectInfo combatObjectInfo)
     {
-        if(spawnedCombatTurnUIItems[0].GetCharacterName() == combatObjectInfo.name)
+        if(spawnedCombatTurnUIItems[0].combatInfo.character == combatObjectInfo.character)
         {
+            Debug.LogError(spawnedCombatTurnUIItems[0].combatInfo.name);
             Debug.LogError("Skipping this: " + combatObjectInfo.name + " since it is the first item!");
             return;
         }

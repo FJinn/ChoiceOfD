@@ -13,6 +13,8 @@ public class CombatTurnUIItem : VisualElement
     public string GetCharacterName() => characterName.text;
     public bool IsActive() => characterName.style.display == DisplayStyle.Flex;
 
+    public CombatManager.CombatObjectInfo combatInfo {private set; get;}
+
     public CombatTurnUIItem(Texture2D bgTexture)
     {
         style.flexGrow = 1;
@@ -56,9 +58,10 @@ public class CombatTurnUIItem : VisualElement
     }
 
 
-    public void Activate(string _name, Texture2D characterIcon)
+    public void Activate(CombatManager.CombatObjectInfo _combatInfo, Texture2D characterIcon)
     {
-        characterName.text = _name;
+        combatInfo = _combatInfo;
+        characterName.text = combatInfo.name;
         characterName.style.display = DisplayStyle.Flex;
         characterName.style.backgroundImage = characterIcon;
 

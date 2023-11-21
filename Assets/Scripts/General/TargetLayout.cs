@@ -213,6 +213,59 @@ public class TargetLayout : MonoBehaviour
         }
     }
 
+    public void PointerClicked(TargetSelectionSlot clickedSlot)
+    {
+        PlayerController playerController = PlayerController.Instance;
+        playerController.ClearSelectTargets();
+
+        switch(currentActionRange)
+        {
+            case ActionBase.ETargetRangeType.Unit:
+            case ActionBase.ETargetRangeType.FreeUnit:
+                playerController.ClickToSelectTargets(clickedSlot.GetCharacter());
+                break;
+            case ActionBase.ETargetRangeType.Diagonal:
+                foreach(var item in targetSelectionSlots)
+                {
+                    if(item.diagonalIndex == clickedSlot.diagonalIndex || item.diagonalIndex == 2)
+                    {
+                        playerController.ClickToSelectTargets(item.GetCharacter());
+                    }
+                }
+                break;
+            case ActionBase.ETargetRangeType.Row:
+                foreach(var item in targetSelectionSlots)
+                {
+                    if(item.rowIndex == clickedSlot.rowIndex)
+                    {
+                        playerController.ClickToSelectTargets(item.GetCharacter());
+                    }
+                }
+                break;
+            case ActionBase.ETargetRangeType.Column:
+                foreach(var item in targetSelectionSlots)
+                {
+                    if(item.columnIndex == clickedSlot.columnIndex)
+                    {
+                        playerController.ClickToSelectTargets(item.GetCharacter());
+                    }
+                }
+                break;
+            case ActionBase.ETargetRangeType.All:
+                for(int i=0; i<targetSelectionSlots.Length; ++i)
+                {
+                    CharacterBase target = targetSelectionSlots[i].GetCharacter();
+                    if(target == null)
+                    {
+                        continue;
+                    }
+                    playerController.ClickToSelectTargets(target);
+                }
+                break;
+        }
+        DeactivateAllSelection();
+    }
+
 #region get neighbour
     // ToDo:: better structure
     public TargetSelectionSlot GetLeftSlot(int instigatorIndex, bool withCharacter = true)

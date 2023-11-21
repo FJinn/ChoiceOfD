@@ -153,13 +153,15 @@ public class ActionData
 
     public bool canBeSelected {get; private set;}
     public int currentHealth {get; private set;}
-    public int currentCooldownTurn {get; private set;} = 0;
+    public int currentCooldownTurn {get; private set;}
     public bool IsInCooldown() => currentCooldownTurn > 0;
 
     public void Initialize()
     {
         currentHealth = action.GetInitialHealth();
         canBeSelected = true;
+        // some doesn't start with 0, has to force it
+        currentCooldownTurn = 0;
     }
 
     public void SetCanBeSelected(bool value)

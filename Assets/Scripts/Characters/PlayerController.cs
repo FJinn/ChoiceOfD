@@ -99,6 +99,7 @@ public class PlayerController : Singleton<PlayerController>
     {
         if(!canSelectCooldownActionData && target.IsInCooldown())
         {
+            Debug.LogError("SelectActionData failed:: " + !canSelectCooldownActionData + " :: " + target.IsInCooldown());
             return;
         }
         selectedActionData = target;
@@ -204,7 +205,6 @@ public class PlayerController : Singleton<PlayerController>
     public void ActionTakeDamage()
     {
         ActionData currentActionData = selectedActionData;
-
         bool isActionDead = currentActionData.ReduceHealth(currentReceivingDamage);
         currentReceivingDamage = 0;
 
@@ -280,6 +280,7 @@ public class PlayerController : Singleton<PlayerController>
             switch(selectedActionData.action.GetSelectableTargetType())
             {
                 case ActionBase.ESelectableTargetType.Action:
+                    // ToDo:: able to select other action
                     DoAction(true);
                     canSelectCooldownActionData = true;
                     break;
@@ -289,6 +290,10 @@ public class PlayerController : Singleton<PlayerController>
                         DoAction(false);
                         canSelectCooldownActionData = true;
                     });
+                    break;
+                case ActionBase.ESelectableTargetType.Self:
+                    DoAction(true);
+                    canSelectCooldownActionData = true;
                     break;
             }
             
@@ -313,13 +318,21 @@ public class PlayerController : Singleton<PlayerController>
     {
         if(currentTargets.Contains(target))
         {
-            currentTargets.Remove(target);
-            Debug.Log($"{target.gameObject} is removed from player target");
+            Debug.LogError($"Current targets containted {target}! This should not happen!");
             return;
         }
 
-        Debug.Log($"{target.gameObject} is added to player target");
+        if(target == null)
+        {
+            Debug.Log($"{target.gameObject} is added to player target");
+            return;
+        }
         currentTargets.Add(target);
+    }
+
+    public void ClearSelectTargets()
+    {
+        currentTargets.Clear();
     }
 
     IEnumerator WaitToSelectTargetsUpdate(Action callback)
@@ -347,14 +360,6 @@ public class PlayerController : Singleton<PlayerController>
             ClickToSelectTargets(playerCharacters[0]);
         }
         selectedActionData.action.SetTargets(currentTargets);
-
-        if(currentTargets.Count > 1)
-        {
-            selectedActionData.DoAction(currentCharacter);
-            selectedActionData = null;
-            currentTargets.Clear();
-            return;
-        }
 
         Debug.Log(currentCharacter.name + " move to and do action :: " + selectedActionData.action.actionName);
         selectedActionData.DoAction(currentCharacter);

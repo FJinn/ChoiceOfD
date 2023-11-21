@@ -19,10 +19,18 @@ MonoBehaviour:
         PublicKeyToken=null
       typeName: Action_Slash
       m_IsInit: 1
+    - m_SelectedTypeName: Action_ShieldSelf, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
+        PublicKeyToken=null
+      typeName: Action_ShieldSelf
+      m_IsInit: 1
+    - m_SelectedTypeName: Action_LancePierce, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
+        PublicKeyToken=null
+      typeName: Action_LancePierce
+      m_IsInit: 1
     equippedActions:
     - action: {fileID: 0}
-      belongToCharacterClass: 0
-      obtainedIndex: 0
+      belongToCharacterClass: 1
+      obtainedIndex: 2
     - action: {fileID: 0}
       belongToCharacterClass: 0
       obtainedIndex: 0

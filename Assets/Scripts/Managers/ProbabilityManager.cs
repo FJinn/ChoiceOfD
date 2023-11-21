@@ -11,4 +11,9 @@ public class ProbabilityManager
     {
         return Random.Range(1, 21);
     }
+
+    public static bool RandomPercentage(float target)
+    {
+        return Random.Range(0, 0.999f) < target;
+    }
 }

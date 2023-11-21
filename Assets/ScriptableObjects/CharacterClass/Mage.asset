@@ -15,9 +15,17 @@ MonoBehaviour:
   characterClassInfo:
     characterClassType: 3
     defaultActions:
-    - m_SelectedTypeName: Action_SelfHeal, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
+    - m_SelectedTypeName: Action_MagicBlast, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
         PublicKeyToken=null
-      typeName: Action_SelfHeal
+      typeName: Action_MagicBlast
+      m_IsInit: 1
+    - m_SelectedTypeName: Action_ConfuseRay, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
+        PublicKeyToken=null
+      typeName: Action_ConfuseRay
+      m_IsInit: 1
+    - m_SelectedTypeName: Action_SparkleBlast, Assembly-CSharp, Version=0.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+      typeName: Action_SparkleBlast
       m_IsInit: 1
     equippedActions:
     - action: {fileID: 0}

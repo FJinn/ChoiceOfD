@@ -15,9 +15,17 @@ MonoBehaviour:
   characterClassInfo:
     characterClassType: 5
     defaultActions:
-    - m_SelectedTypeName: Action_SelfHeal, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
+    - m_SelectedTypeName: Action_SleepDart, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
         PublicKeyToken=null
-      typeName: Action_SelfHeal
+      typeName: Action_SleepDart
+      m_IsInit: 1
+    - m_SelectedTypeName: Action_ToxicFumes, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
+        PublicKeyToken=null
+      typeName: Action_ToxicFumes
+      m_IsInit: 1
+    - m_SelectedTypeName: Action_FellStinger, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
+        PublicKeyToken=null
+      typeName: Action_FellStinger
       m_IsInit: 1
     equippedActions:
     - action: {fileID: 0}

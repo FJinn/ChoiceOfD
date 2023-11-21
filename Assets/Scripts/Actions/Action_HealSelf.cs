@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [DisallowMultipleComponent]
-public class Action_SelfHeal : ActionBase
+public class Action_HealSelf : ActionBase
 {
     protected override void MainAction_Implementation(Action callback)
     {

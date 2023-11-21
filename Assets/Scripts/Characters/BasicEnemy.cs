@@ -80,7 +80,6 @@ public class BasicEnemy : CharacterBase
         }
         // hasMovedFromAction = true;
         Debug.Log("Move To and do action:: " + action.actionName);
-        Debug.Log(enemyCombatData.GetCurrentTargets());
         action.DoAction(this);
 
         return;
@@ -111,7 +110,7 @@ public class BasicEnemy : CharacterBase
 
     public override void KillCharacter(Action callback)
     {
-        base.KillCharacter(callback);
         CombatManager.Instance.UnRegisterFromCombat(this);
+        base.KillCharacter(callback);
     }
 }

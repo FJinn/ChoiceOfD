@@ -14,7 +14,8 @@ public abstract class ActionBase : MonoBehaviour
     public enum ESelectableTargetType
     {
         Character = 0,
-        Action = 1
+        Action = 1,
+        Self
     }
 
     public enum ETargetRangeType
@@ -35,7 +36,7 @@ public abstract class ActionBase : MonoBehaviour
     [SerializeField] ESelectableTargetType selectableTargetType = ESelectableTargetType.Character;
     [SerializeField] ETargetRangeType actionRange = ETargetRangeType.Unit;
 
-    [Header("General")]
+    [Header("NPC")]
     // how many targets can be selected for this action
     [SerializeField] int targetToBeSelectedCount = 1;
 
@@ -66,8 +67,10 @@ public abstract class ActionBase : MonoBehaviour
     protected virtual void MainAction()
     {
         CombatManager.Instance.ActionStarted();
+        Debug.LogError(actionName + " Main action called");
         MainAction_Implementation(()=> 
         {
+            Debug.LogWarning(actionName + " :: callback to ActionEnded");
             CombatManager.Instance.ActionEnded();
         });
     }
@@ -92,7 +95,7 @@ public abstract class ActionBase : MonoBehaviour
 
     public void SetTargets(List<CharacterBase> _targets)
     {
-        Debug.Assert(_targets.Count > 0 && _targets.Count <= targetToBeSelectedCount);
+        Debug.Assert(instigator is not PlayerCharacter && _targets.Count > 0 && _targets.Count <= targetToBeSelectedCount);
 
         targets = _targets;
     }
@@ -103,11 +106,11 @@ public abstract class ActionBase : MonoBehaviour
     /// <param name="_instigator"></param>
     public virtual void DoAction(CharacterBase _instigator)
     {
+        instigator = _instigator;
         if(!Precondition())
         {
             return;
         }
-        instigator = _instigator;
         
         if(isMainAction)
             MainAction();
@@ -123,7 +126,7 @@ public abstract class ActionBase : MonoBehaviour
 
     public virtual bool Precondition()
     {
-        if(targets.Count > targetToBeSelectedCount)
+        if(instigator is not PlayerCharacter && targets.Count > targetToBeSelectedCount)
         {
             Debug.LogError($"There is more targets {targets.Count} than allowed:: {targetToBeSelectedCount}!");
             return false;

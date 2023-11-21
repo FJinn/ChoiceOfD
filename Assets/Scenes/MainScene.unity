@@ -1080,6 +1080,36 @@ PrefabInstance:
       propertyPath: m_Name
       value: PlayerCharacter
       objectReference: {fileID: 0}
+    - target: {fileID: 5261213284759057352, guid: cbf8de3da38ccdd4ea51362bf402c243,
+        type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5261213284759057352, guid: cbf8de3da38ccdd4ea51362bf402c243,
+        type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5261213284759057352, guid: cbf8de3da38ccdd4ea51362bf402c243,
+        type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5261213284759057352, guid: cbf8de3da38ccdd4ea51362bf402c243,
+        type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5261213284759057352, guid: cbf8de3da38ccdd4ea51362bf402c243,
+        type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5261213284759057352, guid: cbf8de3da38ccdd4ea51362bf402c243,
+        type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -1589,6 +1619,16 @@ GameObject:
   - component: {fileID: 1084953720}
   - component: {fileID: 1084953722}
   - component: {fileID: 1084953723}
+  - component: {fileID: 1084953724}
+  - component: {fileID: 1084953725}
+  - component: {fileID: 1084953727}
+  - component: {fileID: 1084953726}
+  - component: {fileID: 1084953728}
+  - component: {fileID: 1084953729}
+  - component: {fileID: 1084953730}
+  - component: {fileID: 1084953731}
+  - component: {fileID: 1084953732}
+  - component: {fileID: 1084953733}
   m_Layer: 0
   m_Name: Actions
   m_TagString: Untagged
@@ -1648,7 +1688,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dc0655a3c8ea939408ad1333c0245e3f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  actionName: Self Heal
+  actionName: Heal Self
   initialHealth: 2
   maxHealth: 3
   defaultCooldownTurn: 1
@@ -1683,6 +1723,241 @@ MonoBehaviour:
   damage: 10
   hitShakeCameraIntensity: 1
   hitShakeCameraDuration: 0.2
+--- !u!114 &1084953724
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1084953719}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 91938048c64a26e43af59967c98b72ef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  actionName: Shield Self
+  initialHealth: 10
+  maxHealth: 10
+  defaultCooldownTurn: 3
+  selectableTargetType: 2
+  actionRange: 0
+  targetToBeSelectedCount: 1
+  actionBaseWeight: 0
+  effectsTypes: []
+  defaultRemainingTurns: 1
+--- !u!114 &1084953725
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1084953719}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1c39a71b42605eb41bd43b84711cdc08, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  actionName: Lance Pierce
+  initialHealth: 5
+  maxHealth: 5
+  defaultCooldownTurn: 3
+  selectableTargetType: 0
+  actionRange: 2
+  targetToBeSelectedCount: 1
+  actionBaseWeight: 0
+  effectsTypes: []
+  damage: 10
+  hitShakeCameraIntensity: 1
+  hitShakeCameraDuration: 0.2
+--- !u!114 &1084953726
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1084953719}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d636552ea4e718438b8f2d2d4c37270, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  actionName: Blinding Slash
+  initialHealth: 5
+  maxHealth: 5
+  defaultCooldownTurn: 1
+  selectableTargetType: 0
+  actionRange: 0
+  targetToBeSelectedCount: 1
+  actionBaseWeight: 0
+  effectsTypes: []
+  damage: 5
+  blindPercentage: 0.3
+  blindTurn: 1
+  hitShakeCameraIntensity: 1
+  hitShakeCameraDuration: 0.2
+--- !u!114 &1084953727
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1084953719}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f23d5112f8662444b387b5cd3511701, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  actionName: Rally
+  initialHealth: 5
+  maxHealth: 5
+  defaultCooldownTurn: 2
+  selectableTargetType: 0
+  actionRange: 0
+  targetToBeSelectedCount: 1
+  actionBaseWeight: 0
+  effectsTypes: []
+--- !u!114 &1084953728
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1084953719}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0933c8fb2b0a2284391ffb1372e42f10, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  actionName: Toxic Fumes
+  initialHealth: 3
+  maxHealth: 3
+  defaultCooldownTurn: 3
+  selectableTargetType: 0
+  actionRange: 3
+  targetToBeSelectedCount: 1
+  actionBaseWeight: 0
+  effectsTypes: []
+  poisonTurn: 1
+  reduceByTurn: 0
+--- !u!114 &1084953729
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1084953719}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0dd90cfb46b941b47a2a7bc5113e98cf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  actionName: Fell Stinger
+  initialHealth: 3
+  maxHealth: 3
+  defaultCooldownTurn: 3
+  selectableTargetType: 0
+  actionRange: 0
+  targetToBeSelectedCount: 1
+  actionBaseWeight: 0
+  effectsTypes: []
+  initialDamage: 5
+  fatalDamageIncrement: 5
+  maxDamage: 20
+  hitShakeCameraIntensity: 1
+  hitShakeCameraDuration: 0.2
+--- !u!114 &1084953730
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1084953719}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 867e60547c051a04d96353997b09dab2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  actionName: Sleep Dart
+  initialHealth: 5
+  maxHealth: 5
+  defaultCooldownTurn: 3
+  selectableTargetType: 0
+  actionRange: 0
+  targetToBeSelectedCount: 1
+  actionBaseWeight: 0
+  effectsTypes: []
+  baseDispellPercentage: 0.2
+  dispellPercentageIncrementByTurn: 0.1
+--- !u!114 &1084953731
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1084953719}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1ec22352aecff034b85f1b6b3cea70be, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  actionName: Magic Blast
+  initialHealth: 5
+  maxHealth: 5
+  defaultCooldownTurn: 1
+  selectableTargetType: 0
+  actionRange: 0
+  targetToBeSelectedCount: 1
+  actionBaseWeight: 0
+  effectsTypes: []
+  damage: 5
+  hitShakeCameraIntensity: 1
+  hitShakeCameraDuration: 0.2
+--- !u!114 &1084953732
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1084953719}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f312ff9375ae7c44a8b8f08fb729e2e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  actionName: Confuse Ray
+  initialHealth: 3
+  maxHealth: 3
+  defaultCooldownTurn: 1
+  selectableTargetType: 0
+  actionRange: 2
+  targetToBeSelectedCount: 1
+  actionBaseWeight: 0
+  effectsTypes: []
+  dispelledByTurnPercentage: 0.5
+--- !u!114 &1084953733
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1084953719}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a1bc1037310abf42a66bc57f75e14e6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  actionName: Sparkle Blast
+  initialHealth: 3
+  maxHealth: 3
+  defaultCooldownTurn: 2
+  selectableTargetType: 0
+  actionRange: 0
+  targetToBeSelectedCount: 1
+  actionBaseWeight: 0
+  effectsTypes: []
+  damage: 5
+  blindPercentage: 0.5
+  blindTurns: 2
 --- !u!1 &1115836180
 GameObject:
   m_ObjectHideFlags: 0
@@ -1810,6 +2085,36 @@ PrefabInstance:
       propertyPath: m_Name
       value: PlayerCharacter (1)
       objectReference: {fileID: 0}
+    - target: {fileID: 5261213284759057352, guid: cbf8de3da38ccdd4ea51362bf402c243,
+        type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5261213284759057352, guid: cbf8de3da38ccdd4ea51362bf402c243,
+        type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5261213284759057352, guid: cbf8de3da38ccdd4ea51362bf402c243,
+        type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5261213284759057352, guid: cbf8de3da38ccdd4ea51362bf402c243,
+        type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5261213284759057352, guid: cbf8de3da38ccdd4ea51362bf402c243,
+        type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5261213284759057352, guid: cbf8de3da38ccdd4ea51362bf402c243,
+        type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -1895,6 +2200,36 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: PlayerCharacter (3)
+      objectReference: {fileID: 0}
+    - target: {fileID: 5261213284759057352, guid: cbf8de3da38ccdd4ea51362bf402c243,
+        type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5261213284759057352, guid: cbf8de3da38ccdd4ea51362bf402c243,
+        type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5261213284759057352, guid: cbf8de3da38ccdd4ea51362bf402c243,
+        type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5261213284759057352, guid: cbf8de3da38ccdd4ea51362bf402c243,
+        type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5261213284759057352, guid: cbf8de3da38ccdd4ea51362bf402c243,
+        type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5261213284759057352, guid: cbf8de3da38ccdd4ea51362bf402c243,
+        type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -2288,6 +2623,7 @@ GameObject:
   - component: {fileID: 1364939942}
   - component: {fileID: 1364939944}
   - component: {fileID: 1364939945}
+  - component: {fileID: 1364939946}
   m_Layer: 0
   m_Name: Managers
   m_TagString: Untagged
@@ -2419,6 +2755,34 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 79f0404a1b265f5408047c754ef0273d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &1364939946
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1364939937}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37e57a97ad5fbed4d9a12ca977ca6108, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  buffUIDatas:
+  - buffType: 1
+    sprite: {fileID: 21300000, guid: 7bc573667d149a74aba2a0dbf9789603, type: 3}
+  - buffType: 2
+    sprite: {fileID: 21300000, guid: 9ff82db9551b2744bb90d4105a9cc018, type: 3}
+  - buffType: 3
+    sprite: {fileID: 21300000, guid: 201a06dff453ccd4c97206335937c09b, type: 3}
+  debuffUIDatas:
+  - debuffType: 1
+    sprite: {fileID: 21300000, guid: 3ebdd4b8e37cd0043949694922d811b3, type: 3}
+  - debuffType: 2
+    sprite: {fileID: 21300000, guid: 41cf022db3c66394aaee35dde3f8af5e, type: 3}
+  - debuffType: 3
+    sprite: {fileID: 21300000, guid: 4b0445c22e4a42f4a9e54f507d86b72d, type: 3}
+  - debuffType: 4
+    sprite: {fileID: 21300000, guid: e5d1fd36a0726bb4c98f7d09b7d5905b, type: 3}
 --- !u!114 &1421641867 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 6963025263708759148, guid: 7811b4196aba160429240ce431c22a1c,
@@ -2886,6 +3250,36 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: PlayerCharacter (2)
+      objectReference: {fileID: 0}
+    - target: {fileID: 5261213284759057352, guid: cbf8de3da38ccdd4ea51362bf402c243,
+        type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5261213284759057352, guid: cbf8de3da38ccdd4ea51362bf402c243,
+        type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5261213284759057352, guid: cbf8de3da38ccdd4ea51362bf402c243,
+        type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5261213284759057352, guid: cbf8de3da38ccdd4ea51362bf402c243,
+        type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5261213284759057352, guid: cbf8de3da38ccdd4ea51362bf402c243,
+        type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5261213284759057352, guid: cbf8de3da38ccdd4ea51362bf402c243,
+        type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

@@ -2,6 +2,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization.Formatters;
+using TMPro;
 using UnityEngine;
 
 public class CombatManager : Singleton<CombatManager>
@@ -30,8 +32,9 @@ public class CombatManager : Singleton<CombatManager>
     int totalCombatObjects;
     int currentTurnCombatObjectIndex;
     bool pauseCombat;
+    CombatObjectInfo currentCombatObjectInfo;
     Coroutine nextCombatObjectTurnRoutine;
-    Coroutine actionDoneDelayRoutie;
+    Coroutine actionCleanUpDelayRoutie;
 
     public void SetCombatObjectsAmount(int value)
     {
@@ -82,6 +85,7 @@ public class CombatManager : Singleton<CombatManager>
 
     public void UnRegisterFromCombat(CharacterBase _character)
     {
+        Debug.LogError("UnRegisterFromCombat");
         CombatObjectInfo found = combatObjectInfos.Find(x => x.character == _character);
         if(found == null)
         {
@@ -123,27 +127,27 @@ public class CombatManager : Singleton<CombatManager>
         }
 
         Debug.Log("CombatManager::ActionEnded");
-        combatObjectInfos[currentTurnCombatObjectIndex].actionCount -= 1;
-        combatObjectInfos[currentTurnCombatObjectIndex].character.ICleanUpAction();
+        currentCombatObjectInfo.actionCount -= 1;
+        currentCombatObjectInfo.character.ICleanUpAction();
     }
 
-    public void ActionDone()
+    public void ActionCleanUp()
     {
         if(!isInCombat)
         {
             return;
         }
 
-        Debug.Log("CombatManager::ActionDone");
+        Debug.Log("CombatManager::ActionCleanUp");
 
-        if(actionDoneDelayRoutie != null)
+        if(actionCleanUpDelayRoutie != null)
         {
-            StopCoroutine(actionDoneDelayRoutie);
+            StopCoroutine(actionCleanUpDelayRoutie);
         }
-        actionDoneDelayRoutie = StartCoroutine(ActionDoneDelay());
+        actionCleanUpDelayRoutie = StartCoroutine(ActionCleanUpDelay());
     }
 
-    IEnumerator ActionDoneDelay()
+    IEnumerator ActionCleanUpDelay()
     {
         float waitDuration = turnProcessDelay;
         float waitTimer = 0;
@@ -152,13 +156,15 @@ public class CombatManager : Singleton<CombatManager>
             waitTimer += Time.deltaTime;
             yield return null;
         }
-        if(combatObjectInfos[currentTurnCombatObjectIndex].actionCount <= 0)
+        Debug.LogError(currentCombatObjectInfo.name + " :: ActionCleanUp After delay");
+        if(currentCombatObjectInfo.actionCount <= 0)
         {
             NextCombatObjectTurn();
         }
         else
         {
-            combatObjectInfos[currentTurnCombatObjectIndex].character.ISelectAction();
+            Debug.Log("Another turn from the same character.");
+            currentCombatObjectInfo.character.ISelectAction();
         }
     }
 
@@ -172,7 +178,7 @@ public class CombatManager : Singleton<CombatManager>
 
         if(combatRoundPassed >= 0)
         {
-            combatObjectInfos[currentTurnCombatObjectIndex].character.ITurnEnd();
+            currentCombatObjectInfo.character.ITurnEnd();
         }
         
         if(nextCombatObjectTurnRoutine != null)
@@ -190,21 +196,25 @@ public class CombatManager : Singleton<CombatManager>
         {
             yield return null;
         }
-       currentTurnCombatObjectIndex = (currentTurnCombatObjectIndex + 1) % totalCombatObjects;
+
+       currentTurnCombatObjectIndex = (combatObjectInfos.IndexOf(currentCombatObjectInfo) + 1) % totalCombatObjects;
+       currentCombatObjectInfo = combatObjectInfos[currentTurnCombatObjectIndex];
 
         if(currentTurnCombatObjectIndex == 0)
         {
             combatRoundPassed += 1;
         }
 
-        onUpdateCurrentTurnCombatObject?.Invoke(combatObjectInfos[currentTurnCombatObjectIndex]);
-        bool skipTurn = !combatObjectInfos[currentTurnCombatObjectIndex].character.IStartTurn();
+        Debug.Log("Update combat turn UI with :: " + currentCombatObjectInfo.name);
+        onUpdateCurrentTurnCombatObject?.Invoke(currentCombatObjectInfo);
+        bool skipTurn = !currentCombatObjectInfo.character.IStartTurn();
         if(skipTurn)
         {
+            Debug.LogWarning("Skip Turn! :: " + currentCombatObjectInfo.name);
             NextCombatObjectTurn();
             yield break;
         }
-        combatObjectInfos[currentTurnCombatObjectIndex].character.ISelectAction();
+        currentCombatObjectInfo.character.ISelectAction();
     }
 
     void ProcessCombatObjectsInitiate(bool initializeTurn = true)

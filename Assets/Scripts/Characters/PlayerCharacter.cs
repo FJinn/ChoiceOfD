@@ -211,6 +211,11 @@ public class PlayerCharacter : CharacterBase
 
     public override void ReduceHealth(int reduceAmount, List<ECharacterClass> specificClasses = null, Action callback = null)
     {
+        if(SkipReduceHealthEvaluation(reduceAmount))
+        {
+            callback?.Invoke();
+            return;
+        }
         PlayerController.Instance.ReduceHealth(reduceAmount, specificClasses, callback);
     }
 

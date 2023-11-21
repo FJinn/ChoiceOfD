@@ -73,13 +73,16 @@ public class CardUIItem : MonoBehaviour
                 {
                     parentPanel = characterPanel, //characterPanel.Q("Character"),
                     initialParentPosition = characterPanel.transform.position,
-                    card = characterPanel.Q<Button>("Card" + (j+1)),
-                    healthPoint = characterPanel.Q<Label>("HealthPoint")
+                    card = characterPanel.Q<Button>("Card" + (j+1))
                 };
+                target.healthPoint = target.card.Q<Label>("HealthPoint");
                 target.parentPanel.style.display = DisplayStyle.None;
                 cardDatas[j+i] = target;
             }
+        }
 
+        for(int i=0; i<12; ++i)
+        {
             for(int k=0; k<5; ++k)
             {
                 cardDatas[i].cooldownBlocks[k] = cardDatas[i].card.Q("CooldownBlock"+k);
@@ -138,6 +141,7 @@ public class CardUIItem : MonoBehaviour
     {
         if(!cardUI.IsSelectableClass(cardData.actionData.belongToCharacterClass) || !cardData.actionData.canBeSelected || cardData == selectedCardData)
         {
+            Debug.LogError("why this");
             return;
         }
         if(selectedCardData != null)
