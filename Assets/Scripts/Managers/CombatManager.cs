@@ -12,6 +12,8 @@ public class CombatManager : Singleton<CombatManager>
 
     public Action<List<CombatObjectInfo>> onCombatOrderArranged;
     public Action<CombatObjectInfo> onUnregisterOnCombat;
+    public Action<ActionBase, Action> onActionStarted;
+    public Action onActionEnded;
     public Action onCombatEnded;
     public Action<CombatObjectInfo> onUpdateCurrentTurnCombatObject;
     public bool isInCombat {get; private set;}
@@ -114,9 +116,9 @@ public class CombatManager : Singleton<CombatManager>
         isInCombat = false;
     }
 
-    public void ActionStarted()
+    public void ActionStarted(ActionBase actionBase, Action callback)
     {
-        Debug.Log("CombatManager::ActionStarted");
+        onActionStarted?.Invoke(actionBase, callback);
     }
 
     public void ActionEnded()
@@ -126,7 +128,7 @@ public class CombatManager : Singleton<CombatManager>
             return;
         }
 
-        Debug.Log("CombatManager::ActionEnded");
+        onActionEnded?.Invoke();
         currentCombatObjectInfo.actionCount -= 1;
         currentCombatObjectInfo.character.ICleanUpAction();
     }
@@ -207,14 +209,17 @@ public class CombatManager : Singleton<CombatManager>
 
         Debug.Log("Update combat turn UI with :: " + currentCombatObjectInfo.name);
         onUpdateCurrentTurnCombatObject?.Invoke(currentCombatObjectInfo);
-        bool skipTurn = !currentCombatObjectInfo.character.IStartTurn();
-        if(skipTurn)
+
+        currentCombatObjectInfo.character.IStartTurn((skipTurn)=>
         {
-            Debug.LogWarning("Skip Turn! :: " + currentCombatObjectInfo.name);
-            NextCombatObjectTurn();
-            yield break;
-        }
-        currentCombatObjectInfo.character.ISelectAction();
+            if(skipTurn)
+            {
+                Debug.LogWarning("Skip Turn! :: " + currentCombatObjectInfo.name);
+                NextCombatObjectTurn();
+                return;
+            }
+            currentCombatObjectInfo.character.ISelectAction();
+        });
     }
 
     void ProcessCombatObjectsInitiate(bool initializeTurn = true)
@@ -259,7 +264,7 @@ public class CombatManager : Singleton<CombatManager>
 
 public interface ICombat
 {
-    public bool IStartTurn();
+    public void IStartTurn(Action<bool> callback);
     public void ISelectAction();
     public void ICleanUpAction();
     public void ITurnEnd();

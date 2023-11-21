@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -10,7 +11,11 @@ public class CombatTurnUI : MonoBehaviour
     [SerializeField] Texture2D frameTexture;
 
     VisualElement charactersViewContainer;
+    VisualElement actionNamePanel;
+    Label actionName;
     List<CombatTurnUIItem> spawnedCombatTurnUIItems = new();
+
+    Coroutine actionNamePanelRoutine;
 
     static int turnUIItemInTransitionsCount;
     public static bool stillRunning => turnUIItemInTransitionsCount > 0;
@@ -18,9 +23,9 @@ public class CombatTurnUI : MonoBehaviour
     void Awake()
     {
         VisualElement root = uiDocument.rootVisualElement;
-
         charactersViewContainer = root.Q("CombatCharacterContainer");
-        
+        actionNamePanel = root.Q("ActionNamePanel");
+        actionName = root.Q<Label>("ActionName");
     }
 
     void Start()
@@ -29,8 +34,12 @@ public class CombatTurnUI : MonoBehaviour
         CombatManager.Instance.onUnregisterOnCombat += RemoveCombatUIItem;
         CombatManager.Instance.onCombatEnded += CombatEndedCleanUp;
         CombatManager.Instance.onUpdateCurrentTurnCombatObject += UpdateCurrentCombatTurnUIItem;
+        CombatManager.Instance.onActionStarted += ShowActionNamePanel;
+        CombatManager.Instance.onActionEnded += HideActionNamePanel;
 
         charactersViewContainer.style.display = DisplayStyle.None;
+        actionNamePanel.style.display = DisplayStyle.None;
+        actionName.style.opacity = 0;
     }
 
     void OnDestroy()
@@ -110,5 +119,45 @@ public class CombatTurnUI : MonoBehaviour
         found = new CombatTurnUIItem(frameTexture);
         spawnedCombatTurnUIItems.Add(found);
         return found;
+    }
+
+    void ShowActionNamePanel(ActionBase action, Action callback)
+    {
+        actionName.text = action.actionName;
+        actionNamePanel.transform.scale = new Vector3(0, 1, 1);
+        actionNamePanel.style.display = DisplayStyle.Flex;
+        VisualElementTransitions.Instance.LerpVector(new VisualElementVectorParams
+        {
+            visualElement = actionNamePanel,
+            routineCache = actionNamePanelRoutine,
+            onEndCallback = ()=>
+            {
+                ShowActionName(callback);
+            },
+            targetVector = Vector3.one,
+            durationToReach = 0.5f,
+            vectorType = VisualElementVectorParams.EVectorType.Scale
+        });
+    }
+
+    void ShowActionName(Action callback)
+    {
+        actionName.style.opacity = 0;
+        Coroutine actionNameOpacityRoutine = null;
+        VisualElementTransitions.Instance.LerpVector(new VisualElementVectorParams
+        {
+            visualElement = actionName,
+            routineCache = actionNameOpacityRoutine,
+            onEndCallback = callback,
+            targetVector = Vector3.right,
+            durationToReach = 0.7f,
+            vectorType = VisualElementVectorParams.EVectorType.Opacity
+        });
+    }
+
+    public void HideActionNamePanel()
+    {
+        actionNamePanel.style.display = DisplayStyle.None;
+        actionName.style.opacity = 0;
     }
 }

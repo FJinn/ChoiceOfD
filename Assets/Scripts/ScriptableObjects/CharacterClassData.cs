@@ -171,6 +171,7 @@ public class ActionData
 
     public void DoAction(CharacterBase _instigator)
     {
+        action.SetActionDataInstigator(this);
         action.DoAction(_instigator);
         currentCooldownTurn = action.GetDefaultCooldownTurn();
         onCooldownTurnChanged?.Invoke(currentCooldownTurn);

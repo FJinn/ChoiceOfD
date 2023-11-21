@@ -49,6 +49,7 @@ public abstract class ActionBase : MonoBehaviour
 
     protected CharacterBase instigator;
     protected List<CharacterBase> targets;
+    protected ActionData actionDataInstigator;
 
     protected bool isMainAction;
 
@@ -66,20 +67,23 @@ public abstract class ActionBase : MonoBehaviour
 
     protected virtual void MainAction()
     {
-        CombatManager.Instance.ActionStarted();
-        Debug.LogError(actionName + " Main action called");
-        MainAction_Implementation(()=> 
+        CombatManager.Instance.ActionStarted(this, ()=>
         {
-            Debug.LogWarning(actionName + " :: callback to ActionEnded");
-            CombatManager.Instance.ActionEnded();
+            MainAction_Implementation(()=> 
+            {
+                Debug.LogWarning(actionName + " :: callback to ActionEnded");
+                CombatManager.Instance.ActionEnded();
+            });
         });
     }
     protected virtual void SubAction()
     {
-        CombatManager.Instance.ActionStarted();
-        SubAction_Implementation(()=> 
+        CombatManager.Instance.ActionStarted(this, ()=>
         {
-            CombatManager.Instance.ActionEnded();
+            SubAction_Implementation(()=> 
+            {
+                CombatManager.Instance.ActionEnded();
+            });
         });
     }
 
@@ -96,7 +100,7 @@ public abstract class ActionBase : MonoBehaviour
     public void SetTargets(List<CharacterBase> _targets)
     {
         Debug.Assert(instigator is not PlayerCharacter && _targets.Count > 0 && _targets.Count <= targetToBeSelectedCount);
-
+Debug.LogError(_targets.Count + " :: <------");
         targets = _targets;
     }
 
@@ -143,6 +147,11 @@ public abstract class ActionBase : MonoBehaviour
     public int GetActionWeight()
     {
         return actionBaseWeight;
+    }
+
+    public void SetActionDataInstigator(ActionData _instigator)
+    {
+        actionDataInstigator = _instigator;
     }
     
 }

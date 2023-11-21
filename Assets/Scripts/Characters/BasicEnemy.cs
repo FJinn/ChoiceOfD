@@ -60,13 +60,8 @@ public class BasicEnemy : CharacterBase
             callback?.Invoke();
         });
     }
-
-    public override bool IStartTurn()
-    {
-        return base.IStartTurn();
-    }
-
-    public override void ISelectAction()
+    
+    public override void SelectActionImplementation()
     {
         // temp: AssignAction handles everything, pick random action and pick random targets
         ActionBase action = planner.AssignAction(availableActions);

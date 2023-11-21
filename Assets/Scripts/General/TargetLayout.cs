@@ -216,7 +216,7 @@ public class TargetLayout : MonoBehaviour
     public void PointerClicked(TargetSelectionSlot clickedSlot)
     {
         PlayerController playerController = PlayerController.Instance;
-        playerController.ClearSelectTargets();
+        playerController.ClearTargets();
 
         switch(currentActionRange)
         {

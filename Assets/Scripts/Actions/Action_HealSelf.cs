@@ -8,6 +8,10 @@ public class Action_HealSelf : ActionBase
 {
     protected override void MainAction_Implementation(Action callback)
     {
+        if(instigator is PlayerCharacter)
+        {
+            PlayerController.SelectActionData(actionDataInstigator);
+        }
         instigator.AddHealth(1, null, callback);
     }
 

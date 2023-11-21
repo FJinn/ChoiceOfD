@@ -14,6 +14,9 @@ public class CardUI : MonoBehaviour
     [SerializeField] CardUIItem cardUIItem;
 
     public bool isSelectToTakeDamage {private set; get;}
+    public int takingDamageAmount {private set; get;}
+    public float takingDamagePercentageAmount {private set; get;}
+    public bool isDamagePercentage {private set; get;}
 
     Button confirmButton;
 
@@ -34,6 +37,7 @@ public class CardUI : MonoBehaviour
         PlayerController.onEquipAction += OnAddAction;
         PlayerController.onUnequipAction += OnRemoveAction;
         PlayerController.onSelectActionToTakeDamage += SelectToTakeDamage;
+        PlayerController.onSelectActionToTakeDamagePercentage += SelectToTakeDamage;
         PlayerController.onSelectActionToSwap += SelectActionToSwap;
         PlayerController.onSelectActionToUse += SelectActionToUse;
         PlayerParty.onAddCharacterToParty += OnCharacterAddedToParty;
@@ -45,15 +49,27 @@ public class CardUI : MonoBehaviour
         PlayerController.onEquipAction -= OnAddAction;
         PlayerController.onUnequipAction -= OnRemoveAction;
         PlayerController.onSelectActionToTakeDamage -= SelectToTakeDamage;
+        PlayerController.onSelectActionToTakeDamagePercentage -= SelectToTakeDamage;
         PlayerController.onSelectActionToSwap -= SelectActionToSwap;
         PlayerController.onSelectActionToUse -= SelectActionToUse;
         PlayerParty.onAddCharacterToParty -= OnCharacterAddedToParty;
         PlayerParty.onRemoveCharacterFromParty -= OnCharacterRemovedFromParty;
     }
 
-    void SelectToTakeDamage(List<ECharacterClass> allowedClasses)
+    void SelectToTakeDamage(int reduceAmount, List<ECharacterClass> allowedClasses)
     {
         isSelectToTakeDamage = true;
+        takingDamageAmount = reduceAmount;
+        isDamagePercentage = false;
+        selectableClasses = allowedClasses;
+        SetConfirmButton(true, "Take Damage");
+    }
+
+    void SelectToTakeDamage(float reducePercentage, List<ECharacterClass> allowedClasses)
+    {
+        isSelectToTakeDamage = true;
+        takingDamagePercentageAmount = reducePercentage;
+        isDamagePercentage = true;
         selectableClasses = allowedClasses;
         SetConfirmButton(true, "Take Damage");
     }
@@ -75,6 +91,7 @@ public class CardUI : MonoBehaviour
     {
         PlayerController.SelectActionData(cardUIItem.GetCurrentSelectedActionData());
         selectableClasses = null;
+        isSelectToTakeDamage = false;
         cardUIItem.Deselect();
         SetConfirmButton(false, "");
     }

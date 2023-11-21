@@ -1,0 +1,5 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <ui:VisualElement name="ActionNamePanel" style="align-items: center; justify-content: center; align-self: center; background-color: rgb(171, 171, 171); flex-basis: auto; width: auto; min-width: 30%;">
+        <ui:Label tabindex="-1" text="Action Name" parse-escape-sequences="true" display-tooltip-when-elided="true" name="ActionName" style="align-self: center; align-items: center; justify-content: center; white-space: normal; -unity-text-align: middle-center; flex-grow: 1; flex-shrink: 1;" />
+    </ui:VisualElement>
+</ui:UXML>

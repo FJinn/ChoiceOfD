@@ -15,7 +15,7 @@ public class Action_ConfuseRay : ActionBase
             Debug.LogError($"Instigator: {instigator}");
             return;
         }
-
+Debug.LogError(targets.Count);
         // if instigator is player
         for(int i=0; i<targets.Count; ++i)
         {

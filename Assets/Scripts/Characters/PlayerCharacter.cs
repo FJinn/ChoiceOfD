@@ -105,15 +105,15 @@ public class PlayerCharacter : CharacterBase
 #endregion
 
 #region Combat
-    public override bool IStartTurn()
+    public override void IStartTurn(Action<bool> callback)
     {
         PlayerController playerController = PlayerController.Instance;
         playerController.SetCurrentCharacter(this);
         playerController.ReduceAllActionDataCooldown(characterClassInfo.characterClassType);
-        return base.IStartTurn();
+        base.IStartTurn(callback);
     }
 
-    public override void ISelectAction()
+    public override void SelectActionImplementation()
     {
         PlayerController.Instance.SelectAction();
     }
@@ -217,6 +217,11 @@ public class PlayerCharacter : CharacterBase
             return;
         }
         PlayerController.Instance.ReduceHealth(reduceAmount, specificClasses, callback);
+    }
+
+    public override void ReduceHealthByPercentage(float percentage, List<ECharacterClass> specificClasses = null, Action callback = null)
+    {
+        PlayerController.Instance.ReduceHealthByPercentage(percentage, specificClasses, callback);
     }
 
     public override void KillCharacter(Action callback)

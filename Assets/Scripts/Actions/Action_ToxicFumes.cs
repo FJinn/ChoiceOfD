@@ -9,6 +9,7 @@ public class Action_ToxicFumes : ActionBase
     [Header("Toxic Fumes")]
     public int poisonTurn = 1;
     public bool reduceByTurn = false;
+    [Range(0f, 1f)]public float poisonReduceHealthPercentageByTurn = 0.1f;
 
     protected override void MainAction_Implementation(Action callback)
     { 
@@ -25,7 +26,8 @@ public class Action_ToxicFumes : ActionBase
             {
                 debuff = CharacterBase.EDebuffType.Posion,
                 remainingTurns = poisonTurn,
-                reduceByTurns = reduceByTurn
+                reduceByTurns = reduceByTurn,
+                poisonReducePercentage = poisonReduceHealthPercentageByTurn
             });
         }
         callback?.Invoke();

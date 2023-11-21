@@ -8,31 +8,63 @@ using Random = UnityEngine.Random;
 
 public class VisualElementTransitions : Singleton<VisualElementTransitions>
 {    
-    public void LerpPosition(VisualElementPositionParams visualElementPositionParams)
+    public void LerpVector(VisualElementVectorParams visualElementPositionParams)
     {
         if(visualElementPositionParams.routineCache != null)
         {
             StopCoroutine(visualElementPositionParams.routineCache);
         }
 
-        visualElementPositionParams.routineCache = StartCoroutine(LerpPositionUpdate(visualElementPositionParams));
+        visualElementPositionParams.routineCache = StartCoroutine(LerpVectorUpdate(visualElementPositionParams));
     }
 
-    IEnumerator LerpPositionUpdate(VisualElementPositionParams visualElementPositionParams)
+    IEnumerator LerpVectorUpdate(VisualElementVectorParams visualElementVectorParams)
     {
         float delta = 0;
-        Vector3 initialPos = visualElementPositionParams.visualElement.transform.position;
-
-        while(delta < 1)
+        Vector3 initialVector = visualElementVectorParams.vectorType switch
         {
-            visualElementPositionParams.visualElement.transform.position = Vector3.Lerp(initialPos, visualElementPositionParams.targetPosition, delta / visualElementPositionParams.durationToReach);
+            VisualElementVectorParams.EVectorType.Position => visualElementVectorParams.visualElement.transform.position,
+            VisualElementVectorParams.EVectorType.Scale => visualElementVectorParams.visualElement.transform.scale,
+            VisualElementVectorParams.EVectorType.Opacity => new Vector3(visualElementVectorParams.visualElement.style.opacity.value,0,0),
+            _ => Vector3.zero
+        };
+
+        Debug.LogError("started LerpVectorUpdate");
+        while(delta < visualElementVectorParams.durationToReach)
+        {
+            Vector3 newVector = Vector3.Lerp(initialVector, visualElementVectorParams.targetVector, delta / visualElementVectorParams.durationToReach);
+            switch(visualElementVectorParams.vectorType)
+            {
+                case VisualElementVectorParams.EVectorType.Position:
+                    visualElementVectorParams.visualElement.transform.position = newVector;
+                    break;
+                case VisualElementVectorParams.EVectorType.Scale:
+                    visualElementVectorParams.visualElement.transform.scale = newVector;
+                    break;
+                case VisualElementVectorParams.EVectorType.Opacity:
+                    visualElementVectorParams.visualElement.style.opacity = newVector.x;
+                    break;
+            }
+            
             delta += Time.deltaTime;
             yield return null;
         }
 
-        visualElementPositionParams.visualElement.transform.position = visualElementPositionParams.targetPosition;
-        visualElementPositionParams.onEndCallback?.Invoke();
-        visualElementPositionParams.routineCache = null;
+        switch(visualElementVectorParams.vectorType)
+        {
+            case VisualElementVectorParams.EVectorType.Position:
+                visualElementVectorParams.visualElement.transform.position = visualElementVectorParams.targetVector;
+                break;
+            case VisualElementVectorParams.EVectorType.Scale:
+                visualElementVectorParams.visualElement.transform.scale = visualElementVectorParams.targetVector;
+                break;
+            case VisualElementVectorParams.EVectorType.Opacity:
+                visualElementVectorParams.visualElement.style.opacity = visualElementVectorParams.targetVector.x;
+                break;
+        }
+        Debug.LogError("Done calback");
+        visualElementVectorParams.onEndCallback?.Invoke();
+        visualElementVectorParams.routineCache = null;
     }
 
     public void ShakePosition(VisualElementShakeParams visualElementShakeParams)
@@ -77,13 +109,23 @@ public class VisualElementTransitions : Singleton<VisualElementTransitions>
  
 }
 
-public class VisualElementPositionParams
+public class VisualElementVectorParams
 {
     public Coroutine routineCache;
     public VisualElement visualElement;
     public Action onEndCallback;
-    public Vector3 targetPosition;
+    /// <summary>
+    /// use x axis for opacity value
+    /// </summary>
+    public Vector3 targetVector;
     public float durationToReach;
+    public EVectorType vectorType;
+    public enum EVectorType
+    {
+        Position = 0,
+        Scale = 1,
+        Opacity = 2
+    }
 }
 
 public class VisualElementShakeParams

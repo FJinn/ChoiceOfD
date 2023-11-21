@@ -26,6 +26,7 @@ public class CardUIItem : MonoBehaviour
         public ECharacterClass characterClass;
         public Button card;
         public Label healthPoint;
+        public Label damageAmount;
         public ActionData actionData;
         public Vector3 initialParentPosition;
         public Coroutine shakeRoutine = null;
@@ -73,9 +74,11 @@ public class CardUIItem : MonoBehaviour
                 {
                     parentPanel = characterPanel, //characterPanel.Q("Character"),
                     initialParentPosition = characterPanel.transform.position,
-                    card = characterPanel.Q<Button>("Card" + (j+1))
+                    card = characterPanel.Q<Button>("Card" + (j+1)),
                 };
                 target.healthPoint = target.card.Q<Label>("HealthPoint");
+                target.damageAmount = target.card.Q<Label>("DamageAmount");
+                target.damageAmount.style.display = DisplayStyle.None;
                 target.parentPanel.style.display = DisplayStyle.None;
                 cardDatas[j+i] = target;
             }
@@ -124,7 +127,6 @@ public class CardUIItem : MonoBehaviour
         CardData found = cardDatas.Find(x => x.characterClass == newActionData.belongToCharacterClass && x.actionData == null);
 
         UpdateCardData(found, newActionData);
-        // found.UpdateHealth();
     }
 
     public void RemoveCard(ActionData _cacheActionData)
@@ -132,6 +134,8 @@ public class CardUIItem : MonoBehaviour
         var found = cardDatas.Find(x => x.actionData == _cacheActionData);
         found.UnregisterUpdateHealth();
         found.UnregisterUpdateCooldownBlock();
+        found.card.UnregisterCallback<MouseEnterEvent>(e => {OnPointerEnter(found);});
+        found.card.UnregisterCallback<MouseLeaveEvent>(e => {OnPointerExit(found);});
         found.characterClass = ECharacterClass.None;
         found.actionData = null;
         found.card.style.display = DisplayStyle.None;
@@ -141,7 +145,6 @@ public class CardUIItem : MonoBehaviour
     {
         if(!cardUI.IsSelectableClass(cardData.actionData.belongToCharacterClass) || !cardData.actionData.canBeSelected || cardData == selectedCardData)
         {
-            Debug.LogError("why this");
             return;
         }
         if(selectedCardData != null)
@@ -168,6 +171,9 @@ public class CardUIItem : MonoBehaviour
         {
             Select(target);
         };
+        target.card.RegisterCallback<MouseEnterEvent>(e => {OnPointerEnter(target);});
+        target.card.RegisterCallback<MouseLeaveEvent>(e => {OnPointerExit(target);});
+
         target.card.style.display = DisplayStyle.Flex;
 
         target.healthPoint.text = target.actionData.currentHealth.ToString();
@@ -181,28 +187,48 @@ public class CardUIItem : MonoBehaviour
             Coroutine _routineCache = null;
             if(cardDatas[i].actionData.belongToCharacterClass != characterClass)
             {
-                VisualElementPositionParams parameters = new VisualElementPositionParams
+                VisualElementVectorParams parameters = new VisualElementVectorParams
                 {
                     visualElement = cardDatas[i].parentPanel,
                     routineCache = _routineCache,
                     onEndCallback = null,
-                    targetPosition = cardDatas[i].parentPanel.transform.position + new Vector3(0, cardDatas[i].parentPanel.resolvedStyle.height, 0),
-                    durationToReach = 1f
+                    targetVector = cardDatas[i].parentPanel.transform.position + new Vector3(0, cardDatas[i].parentPanel.resolvedStyle.height, 0),
+                    durationToReach = 1f,
+                    vectorType = VisualElementVectorParams.EVectorType.Position
                 };
-                transitions.LerpPosition(parameters);
+                transitions.LerpVector(parameters);
             }
             else if(cardDatas[i].parentPanel.transform.position.y != cardDatas[i].initialParentPosition.y)
             {
-                VisualElementPositionParams parameters = new VisualElementPositionParams
+                VisualElementVectorParams parameters = new VisualElementVectorParams
                 {
                     visualElement = cardDatas[i].parentPanel,
                     routineCache = _routineCache,
                     onEndCallback = null,
-                    targetPosition = cardDatas[i].initialParentPosition,
-                    durationToReach = 1f
+                    targetVector = cardDatas[i].initialParentPosition,
+                    durationToReach = 1f,
+                    vectorType = VisualElementVectorParams.EVectorType.Position
                 };
-                transitions.LerpPosition(parameters);
+                transitions.LerpVector(parameters);
             }
+        }
+    }
+
+    void OnPointerEnter(CardData selectingCard)
+    {
+        if(cardUI.isSelectToTakeDamage)
+        {
+            int reduceAmount = cardUI.isDamagePercentage ? (int)(cardUI.takingDamagePercentageAmount * selectingCard.actionData.currentHealth) : cardUI.takingDamageAmount;
+            selectingCard.damageAmount.text = "-" + reduceAmount;
+            selectingCard.damageAmount.style.display = DisplayStyle.Flex;
+        }
+    }
+
+    void OnPointerExit(CardData selectingCard)
+    {
+        if(cardUI.isSelectToTakeDamage)
+        {
+            selectingCard.damageAmount.style.display = DisplayStyle.None;
         }
     }
 }

@@ -32,6 +32,8 @@ public abstract class CharacterBase : MonoBehaviour, ICombat
     [SerializeField, ReadOnly] protected List<ConditionInfo> conditions;
 
     Coroutine healthBarRoutine;
+    Coroutine startTurnRoutine;
+    Coroutine selectActionRoutine;
 
     public float lengthFromGround => characterCollider.bounds.extents.y + RoomManager.Instance.GetCurrentRoomTileGroundWorldPosY();
 
@@ -63,6 +65,7 @@ public abstract class CharacterBase : MonoBehaviour, ICombat
         float currentPercentageToBeDispelled = 0f;
 
         public int remainingHealthPoint;
+        public float poisonReducePercentage;
 
         public void ReduceTurn(int amount = 1)
         {
@@ -172,6 +175,11 @@ public abstract class CharacterBase : MonoBehaviour, ICombat
             callback?.Invoke();
         });
     }
+    public virtual void ReduceHealthByPercentage(float percentage, List<ECharacterClass> specificClasses = null, Action callback = null)
+    {
+        int amount = (int)(health * percentage);
+        ReduceHealth(amount, specificClasses, callback);
+    }
     public virtual void AddHealth(int addValue, List<ECharacterClass> specificClasses = null, Action callback = null)
     {
         health = Mathf.Clamp(health + addValue, 0, maxHealth);
@@ -206,11 +214,54 @@ public abstract class CharacterBase : MonoBehaviour, ICombat
         callback?.Invoke();
     }
 #region Combat
-    public virtual bool IStartTurn()
+    public virtual void IStartTurn(Action<bool> callback)
     {
+        if(startTurnRoutine != null)
+        {
+            StopCoroutine(startTurnRoutine);
+        }
+        startTurnRoutine = StartCoroutine(ProcessStartTurnConditions((skipTurn)=>
+        {
+            if(skipTurn)
+            {
+                ICleanUpAction();
+                callback?.Invoke(true);
+                return;
+            }
+
+            callback?.Invoke(false);
+        }));
+    }
+    public virtual void ISelectAction()
+    {
+        if(selectActionRoutine != null)
+        {
+            StopCoroutine(selectActionRoutine);
+        }
+        selectActionRoutine = StartCoroutine(SelectActionDelay());
+    }
+    public abstract void SelectActionImplementation();
+
+    IEnumerator ProcessStartTurnConditions(Action<bool> callback)
+    {
+        bool waitLoop = false;
+        // ToDo:: handle skip turn based on condition
+        bool skipTurn = false;
         for(int i=conditions.Count-1; i>=0; --i )
         {
             ConditionInfo item = conditions[i];
+
+            if(item.debuff == EDebuffType.Posion)
+            {
+                waitLoop = true;
+                ReduceHealthByPercentage(item.poisonReducePercentage, null, ()=> waitLoop = false);
+            }
+
+            while(waitLoop)
+            {
+                yield return null;
+            }
+
             if(item.reduceByTurns)
             {
                 item.ReduceTurn();
@@ -225,17 +276,21 @@ public abstract class CharacterBase : MonoBehaviour, ICombat
                 conditions.Remove(item);
             }
         }
-
-        bool skipTurn = false;
-        if(skipTurn)
-        {
-            ICleanUpAction();
-            return false;
-        }
-
-        return true;
+        callback?.Invoke(skipTurn);
     }
-    public abstract void ISelectAction();
+
+    IEnumerator SelectActionDelay()
+    {
+        float waitTime = 0.3f;
+        float timer = 0;
+        while(timer < waitTime)
+        {
+            timer += Time.deltaTime;
+            yield return null;
+        }
+        SelectActionImplementation();
+    }
+
     public virtual void ICleanUpAction()
     {
         if(!hasMovedFromAction)
@@ -279,16 +334,18 @@ public abstract class CharacterBase : MonoBehaviour, ICombat
 
     public void AddCondition(ConditionInfo conditionInfo)
     {
+        ConditionInfo found = null;
         if(conditionInfo.buff != EBuffType.None)
         {
             onBuffAdded?.Invoke(conditionInfo.buff);
+            found = conditions.Find(x => x.buff == conditionInfo.buff);
         }
         if(conditionInfo.debuff != EDebuffType.None)
         {
             onDebuffAdded?.Invoke(conditionInfo.debuff);
+            found = conditions.Find(x => x.debuff == conditionInfo.debuff);
         }
 
-        ConditionInfo found = conditions.Find(x => x.buff == conditionInfo.buff || x.debuff == conditionInfo.debuff);
         if(found != null)
         {
             found.remainingTurns = conditionInfo.remainingTurns;

@@ -11,7 +11,8 @@ public class PlayerController : Singleton<PlayerController>
 {
     public static Action<ActionData> onEquipAction;
     public static Action<ActionData> onUnequipAction;
-    public static Action<List<ECharacterClass>> onSelectActionToTakeDamage;
+    public static Action<int, List<ECharacterClass>> onSelectActionToTakeDamage;
+    public static Action<float, List<ECharacterClass>> onSelectActionToTakeDamagePercentage;
     public static Action<List<ECharacterClass>> onSelectActionToSwap;
     public static Action<List<ECharacterClass>> onSelectActionToUse;
     public static Action<ActionBase> onWaitToSelectTarget;
@@ -72,7 +73,7 @@ public class PlayerController : Singleton<PlayerController>
         });
     }
 
-    public void ReduceHealth(int reduceAmount, List<ECharacterClass> targetClasses, Action callback)
+    public void ReduceHealth(int reduceAmount, List<ECharacterClass> targetClasses, Action callback, bool callSelectActionToTakeDamage = true)
     {
         GameManager.Instance.PauseCombat();
 
@@ -86,12 +87,28 @@ public class PlayerController : Singleton<PlayerController>
                 currentActionSelectionRequiredClasses.Add(item);
             }
         }
-        onSelectActionToTakeDamage?.Invoke(currentActionSelectionRequiredClasses);
+
+        if(callSelectActionToTakeDamage)
+        {
+            onSelectActionToTakeDamage?.Invoke(reduceAmount, currentActionSelectionRequiredClasses);
+        }
 
         WaitToSelectActionData(()=>
         {
             ActionTakeDamage();
             callback?.Invoke();
+        });
+    }
+
+    public void ReduceHealthByPercentage(float reducePercentage, List<ECharacterClass> targetClasses, Action callback)
+    {
+        onSelectActionToTakeDamagePercentage?.Invoke(reducePercentage, currentActionSelectionRequiredClasses);
+        WaitToSelectActionData(()=>
+        {
+            int selectedHealth = selectedActionData.currentHealth;
+            int targetReduceAmount = (int)(selectedHealth * reducePercentage);
+
+            ReduceHealth(targetReduceAmount, targetClasses, callback, false);
         });
     }
 
@@ -324,15 +341,10 @@ public class PlayerController : Singleton<PlayerController>
 
         if(target == null)
         {
-            Debug.Log($"{target.gameObject} is added to player target");
+            Debug.Log($"{target?.gameObject} is added to player target");
             return;
         }
         currentTargets.Add(target);
-    }
-
-    public void ClearSelectTargets()
-    {
-        currentTargets.Clear();
     }
 
     IEnumerator WaitToSelectTargetsUpdate(Action callback)
@@ -364,7 +376,6 @@ public class PlayerController : Singleton<PlayerController>
         Debug.Log(currentCharacter.name + " move to and do action :: " + selectedActionData.action.actionName);
         selectedActionData.DoAction(currentCharacter);
         selectedActionData = null;
-        currentTargets.Clear();
         return;
 
         currentCharacter.MoveTo_Speed(currentTargets[0].forwardPosition, ()=>
