@@ -1,12 +1,10 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using TMPro;
 using UnityEngine.UIElements;
 
 using Button = UnityEngine.UIElements.Button;
-using System.Linq;
-using System;
 
 public class CardUIItem : MonoBehaviour
 {
@@ -14,13 +12,10 @@ public class CardUIItem : MonoBehaviour
 
     CardData[] cardDatas = new CardData[12];
 
-    CardData selectedCardData;
-
-    public ActionData GetCurrentSelectedActionData() => selectedCardData.actionData;
-
     [Serializable]
     public class CardData
     {
+        public string id;
         public VisualElement parentPanel;
         public VisualElement[] cooldownBlocks = new VisualElement[5];
         public ECharacterClass characterClass;
@@ -29,7 +24,12 @@ public class CardUIItem : MonoBehaviour
         public Label damageAmount;
         public ActionData actionData;
         public Vector3 initialParentPosition;
-        public Coroutine shakeRoutine = null;
+        public Vector3 initialCardPosition;
+
+        public Vector2 adjustmentToScreenValue;
+
+        public bool hasCardFocused;
+        public bool inSelectedTransition;
 
         public void RegisterUpdateHealth() => actionData.onHealthUpdate += UpdateHealth;
         public void UnregisterUpdateHealth() => actionData.onHealthUpdate -= UpdateHealth;
@@ -42,7 +42,7 @@ public class CardUIItem : MonoBehaviour
             healthPoint.text = actionData.currentHealth.ToString();
             VisualElementShakeParams shakeParams = new VisualElementShakeParams()
             {
-                routineCache = shakeRoutine,
+                id = id + healthPoint.name,
                 visualElement = healthPoint,
                 onEndCallback = null,
                 shakeDuration = 0.3f,
@@ -57,6 +57,44 @@ public class CardUIItem : MonoBehaviour
             {
                 cooldownBlocks[i].style.display = remainingAmount-1 < i ? DisplayStyle.None : DisplayStyle.Flex;
             }
+        }
+        
+        public void Initialize()
+        {
+            adjustmentToScreenValue.x = 0;
+            adjustmentToScreenValue.y = 0;
+            parentPanel.RegisterCallback<GeometryChangedEvent>(SetUpParent);
+            card.RegisterCallback<GeometryChangedEvent>(SetUpCard);
+        }
+
+        void SetUpParent(GeometryChangedEvent geometryChangedEvent)
+        {
+            card.UnregisterCallback<GeometryChangedEvent>(SetUpParent);
+            adjustmentToScreenValue.y += Screen.height - parentPanel.resolvedStyle.height;
+        }
+
+        void SetUpCard(GeometryChangedEvent geometryChangedEvent)
+        {
+            card.UnregisterCallback<GeometryChangedEvent>(SetUpCard);
+            
+            Vector2 worldBoundDifference =  parentPanel.worldBound.position - card.worldBound.position;
+            Vector2 targetPos = worldBoundDifference;
+            card.style.position = Position.Absolute;
+            targetPos.x += card.resolvedStyle.width + (card.resolvedStyle.marginLeft + card.resolvedStyle.marginRight) * 2;
+            targetPos.y = 0; //Screen.height - targetPos.y - card.resolvedStyle.marginBottom;
+            card.transform.position = targetPos;
+
+            adjustmentToScreenValue.x += card.worldBound.position.x + card.resolvedStyle.width * 0.5f;
+            adjustmentToScreenValue.y -= worldBoundDifference.y - card.resolvedStyle.height * 0.5f;
+            initialCardPosition = card.transform.position;
+        }
+
+        public Vector2 GetCardPositionFromScreenPosition(Vector2 screenPos)
+        {
+            Vector2 targetPos = RuntimePanelUtils.ScreenToPanel(card.panel, screenPos);
+            targetPos.x -= adjustmentToScreenValue.x;
+            targetPos.y = Screen.height - targetPos.y - adjustmentToScreenValue.y;
+            return targetPos;
         }
     }
 
@@ -81,6 +119,9 @@ public class CardUIItem : MonoBehaviour
                 target.damageAmount.style.display = DisplayStyle.None;
                 target.parentPanel.style.display = DisplayStyle.None;
                 cardDatas[j+i] = target;
+                cardDatas[j+i].id = "CardData" + (j+i);
+
+                cardDatas[j+i].Initialize();
             }
         }
 
@@ -134,31 +175,12 @@ public class CardUIItem : MonoBehaviour
         var found = cardDatas.Find(x => x.actionData == _cacheActionData);
         found.UnregisterUpdateHealth();
         found.UnregisterUpdateCooldownBlock();
+        // found.card.UnregisterCallback<MouseDownEvent>(e => {OnPointerClick(found);});
         found.card.UnregisterCallback<MouseEnterEvent>(e => {OnPointerEnter(found);});
         found.card.UnregisterCallback<MouseLeaveEvent>(e => {OnPointerExit(found);});
         found.characterClass = ECharacterClass.None;
         found.actionData = null;
         found.card.style.display = DisplayStyle.None;
-    }
-
-    void Select(CardData cardData)
-    {
-        if(!cardUI.IsSelectableClass(cardData.actionData.belongToCharacterClass) || !cardData.actionData.canBeSelected || cardData == selectedCardData)
-        {
-            return;
-        }
-        if(selectedCardData != null)
-        {
-            Deselect();
-        }
-        selectedCardData = cardData;
-        cardData.card.style.backgroundColor = cardUI.isSelectToTakeDamage ? Color.red : Color.blue;
-    }
-
-    public void Deselect()
-    {
-        selectedCardData.card.style.backgroundColor = Color.grey;
-        selectedCardData = null;
     }
 
     void UpdateCardData(CardData target, ActionData targetActionData)
@@ -169,8 +191,9 @@ public class CardUIItem : MonoBehaviour
         target.card.text = targetActionData.action.actionName;
         target.card.clicked += ()=>
         {
-            Select(target);
+            OnPointerClick(target);
         };
+        // target.card.UnregisterCallback<MouseDownEvent>(e => {OnPointerClick(target);});
         target.card.RegisterCallback<MouseEnterEvent>(e => {OnPointerEnter(target);});
         target.card.RegisterCallback<MouseLeaveEvent>(e => {OnPointerExit(target);});
 
@@ -184,13 +207,12 @@ public class CardUIItem : MonoBehaviour
         for(int i=0; i<12; i+=3)
         {
             VisualElementTransitions transitions = VisualElementTransitions.Instance;
-            Coroutine _routineCache = null;
             if(cardDatas[i].actionData.belongToCharacterClass != characterClass)
             {
                 VisualElementVectorParams parameters = new VisualElementVectorParams
                 {
+                    id = cardDatas[i].id + cardDatas[i].parentPanel.name,
                     visualElement = cardDatas[i].parentPanel,
-                    routineCache = _routineCache,
                     onEndCallback = null,
                     targetVector = cardDatas[i].parentPanel.transform.position + new Vector3(0, cardDatas[i].parentPanel.resolvedStyle.height, 0),
                     durationToReach = 1f,
@@ -202,8 +224,8 @@ public class CardUIItem : MonoBehaviour
             {
                 VisualElementVectorParams parameters = new VisualElementVectorParams
                 {
+                    id = cardDatas[i].id + cardDatas[i].parentPanel.name,
                     visualElement = cardDatas[i].parentPanel,
-                    routineCache = _routineCache,
                     onEndCallback = null,
                     targetVector = cardDatas[i].initialParentPosition,
                     durationToReach = 1f,
@@ -214,8 +236,30 @@ public class CardUIItem : MonoBehaviour
         }
     }
 
+    void OnPointerClick(CardData selectingCard)
+    {
+        if(selectingCard.inSelectedTransition || !CombatManager.Instance.isInCombat || !cardUI.IsSelectableClass(selectingCard.actionData.belongToCharacterClass) || !selectingCard.actionData.canBeSelected)
+        {
+            return;
+        }
+        
+        SelectCardTransitions(selectingCard, ()=>
+        {
+            cardUI.ConfirmSelection(selectingCard.actionData);
+            selectingCard.hasCardFocused = false;
+        });
+        // selectingCard.card.style.backgroundColor = cardUI.isSelectToTakeDamage ? Color.red : Color.blue;
+    }
+
     void OnPointerEnter(CardData selectingCard)
     {
+        if(selectingCard.inSelectedTransition)
+        {
+            return;
+        }
+        
+        FocusOnCard(selectingCard);
+        
         if(cardUI.isSelectToTakeDamage)
         {
             int reduceAmount = cardUI.isDamagePercentage ? (int)(cardUI.takingDamagePercentageAmount * selectingCard.actionData.currentHealth) : cardUI.takingDamageAmount;
@@ -226,9 +270,116 @@ public class CardUIItem : MonoBehaviour
 
     void OnPointerExit(CardData selectingCard)
     {
+        if(selectingCard.inSelectedTransition)
+        {
+            return;
+        }
+        
+        UnfocusOnCard(selectingCard);
+
         if(cardUI.isSelectToTakeDamage)
         {
             selectingCard.damageAmount.style.display = DisplayStyle.None;
         }
+    }
+
+    void FocusOnCard(CardData selectingCard)
+    {
+        selectingCard.card.BringToFront();
+
+        VisualElementTransitions transitions = VisualElementTransitions.Instance;
+        VisualElementVectorParams positionParameters = new VisualElementVectorParams
+        {
+            id = selectingCard.id + selectingCard.card.name,
+            visualElement = selectingCard.card,
+            onEndCallback = null,
+            targetVector = selectingCard.initialCardPosition - new Vector3(0, selectingCard.card.resolvedStyle.height * 0.1f, 0),
+            durationToReach = 0.2f,
+            vectorType = VisualElementVectorParams.EVectorType.Position
+        };
+        VisualElementVectorParams scaleParameters = new VisualElementVectorParams
+        {
+            id = selectingCard.id + selectingCard.card.name,
+            visualElement = selectingCard.card,
+            onEndCallback = null,
+            targetVector = Vector3.one * 1.5f,
+            durationToReach = 0.2f,
+            vectorType = VisualElementVectorParams.EVectorType.Scale
+        };
+        transitions.LerpVector(positionParameters);
+        transitions.LerpVector(scaleParameters);
+
+        selectingCard.hasCardFocused = true;
+    }
+
+    void UnfocusOnCard(CardData selectingCard, bool forceUnfocus = false)
+    {
+        if(!forceUnfocus && !selectingCard.hasCardFocused)
+        {
+            return;
+        }
+
+        VisualElementTransitions transitions = VisualElementTransitions.Instance;
+        VisualElementVectorParams positionParameters = new VisualElementVectorParams
+        {
+            id = selectingCard.id + selectingCard.card.name,
+            visualElement = selectingCard.card,
+            onEndCallback = null,
+            targetVector = selectingCard.initialCardPosition,
+            durationToReach = 0.2f,
+            vectorType = VisualElementVectorParams.EVectorType.Position
+        };
+        VisualElementVectorParams scaleParameters = new VisualElementVectorParams
+        {
+            id = selectingCard.id + selectingCard.card.name,
+            visualElement = selectingCard.card,
+            onEndCallback = null,
+            targetVector = Vector3.one,
+            durationToReach = 0.2f,
+            vectorType = VisualElementVectorParams.EVectorType.Scale
+        };
+        transitions.LerpVector(positionParameters);
+        transitions.LerpVector(scaleParameters);
+        
+        selectingCard.hasCardFocused = false;
+    }
+
+    void SelectCardTransitions(CardData selectingCard, Action onTransitionsEnd)
+    {
+        selectingCard.inSelectedTransition = true;
+        Vector3 screenCenter = selectingCard.GetCardPositionFromScreenPosition(new Vector2(Screen.width, Screen.height) * 0.5f);
+
+        //screenCenter = selectingCard.card.WorldToLocal(screenCenter);
+        selectingCard.inSelectedTransition = true;
+        VisualElementTransitions transitions = VisualElementTransitions.Instance;
+        VisualElementVectorParams positionParameters = new VisualElementVectorParams
+        {
+            id = selectingCard.id + selectingCard.card.name,
+            visualElement = selectingCard.card,
+            targetVector = screenCenter, //new Vector3(-Screen.width * 0.5f, -Screen.height * 0.5f, selectingCard.card.transform.position.z),
+            durationToReach = 0.4f,
+            vectorType = VisualElementVectorParams.EVectorType.Position,
+            onEndCallback = ()=>
+            {
+                VisualElementVectorParams scaleParameters = new VisualElementVectorParams
+                {
+                    id = selectingCard.id + selectingCard.card.name,
+                    visualElement = selectingCard.card,
+                    targetVector = Vector3.one * 3f,
+                    durationToReach = 1f,
+                    vectorType = VisualElementVectorParams.EVectorType.Scale,
+                    onEndCallback = ()=>
+                    {
+                        selectingCard.inSelectedTransition = false;
+                        UnfocusOnCard(selectingCard, true);
+                        onTransitionsEnd?.Invoke();
+                    }
+                };
+                transitions.LerpVector(scaleParameters);
+            }
+        };
+        transitions.LerpVector(positionParameters);
+
+        selectingCard.hasCardFocused = false;
     }
 }

@@ -62,7 +62,7 @@ public class CardUI : MonoBehaviour
         takingDamageAmount = reduceAmount;
         isDamagePercentage = false;
         selectableClasses = allowedClasses;
-        SetConfirmButton(true, "Take Damage");
+        // SetConfirmButton(true, "Take Damage");
     }
 
     void SelectToTakeDamage(float reducePercentage, List<ECharacterClass> allowedClasses)
@@ -71,31 +71,30 @@ public class CardUI : MonoBehaviour
         takingDamagePercentageAmount = reducePercentage;
         isDamagePercentage = true;
         selectableClasses = allowedClasses;
-        SetConfirmButton(true, "Take Damage");
+        // SetConfirmButton(true, "Take Damage");
     }
 
     void SelectActionToSwap(List<ECharacterClass> allowedClasses)
     {
         selectableClasses = allowedClasses;
-        SetConfirmButton(true, "Swap");
+        // SetConfirmButton(true, "Swap");
     }
 
     void SelectActionToUse(List<ECharacterClass> allowedClasses)
     {
         selectableClasses = allowedClasses;
-        SetConfirmButton(true, "Use");
+        // SetConfirmButton(true, "Use");
     }
 
     // temp till the ui/ux design is confirmed on how to select and use action
-    public void ConfirmSelection()
+    public void ConfirmSelection(ActionData actionData)
     {
-        PlayerController.SelectActionData(cardUIItem.GetCurrentSelectedActionData());
+        PlayerController.SelectActionData(actionData);
         selectableClasses = null;
         isSelectToTakeDamage = false;
-        cardUIItem.Deselect();
-        SetConfirmButton(false, "");
+        // SetConfirmButton(false, "");
     }
-    
+/*    
     public void SetConfirmButton(bool active, string displayText)
     {
         if(confirmButton.style.display == DisplayStyle.None && active)
@@ -110,7 +109,7 @@ public class CardUI : MonoBehaviour
         confirmButton.style.display = active ? DisplayStyle.Flex : DisplayStyle.None;
         confirmButton.text = displayText;
     }
-
+*/
     void OnAddAction(ActionData target)
     {
         cardUIItem.AddCard(target);

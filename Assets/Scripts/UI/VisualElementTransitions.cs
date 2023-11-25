@@ -1,24 +1,55 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data.Common;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 using Random = UnityEngine.Random;
 
 public class VisualElementTransitions : Singleton<VisualElementTransitions>
-{    
-    public void LerpVector(VisualElementVectorParams visualElementPositionParams)
-    {
-        if(visualElementPositionParams.routineCache != null)
-        {
-            StopCoroutine(visualElementPositionParams.routineCache);
-        }
+{
+    List<RoutineInfo> routineList = new List<RoutineInfo>();
 
-        visualElementPositionParams.routineCache = StartCoroutine(LerpVectorUpdate(visualElementPositionParams));
+    class RoutineInfo
+    {
+        public Coroutine routineCache;
+        public string id;
+        public ETransitionType transitionType;
     }
 
-    IEnumerator LerpVectorUpdate(VisualElementVectorParams visualElementVectorParams)
+    enum ETransitionType
+    {
+        Position = 0,
+        Scale = 1,
+        Opacity = 2,
+        Shake = 3
+    }
+
+    public void LerpVector(VisualElementVectorParams visualElementVectorParams)
+    {
+        ETransitionType _transitionType = GetTransitionType(visualElementVectorParams.vectorType);
+        string targetID = visualElementVectorParams.id;
+
+        RoutineInfo foundRoutine = routineList.Find(x => x.id == targetID && x.transitionType == _transitionType);
+        if(foundRoutine != null)
+        {
+            StopCoroutine(foundRoutine.routineCache);
+        }
+        else
+        {
+            foundRoutine = new RoutineInfo()
+            {
+                id = targetID,
+                transitionType = _transitionType
+            };
+            routineList.Add(foundRoutine);
+        }
+
+        foundRoutine.routineCache = StartCoroutine(LerpVectorUpdate(foundRoutine, visualElementVectorParams));
+    }
+
+    IEnumerator LerpVectorUpdate(RoutineInfo routineInfo, VisualElementVectorParams visualElementVectorParams)
     {
         float delta = 0;
         Vector3 initialVector = visualElementVectorParams.vectorType switch
@@ -29,7 +60,6 @@ public class VisualElementTransitions : Singleton<VisualElementTransitions>
             _ => Vector3.zero
         };
 
-        Debug.LogError("started LerpVectorUpdate");
         while(delta < visualElementVectorParams.durationToReach)
         {
             Vector3 newVector = Vector3.Lerp(initialVector, visualElementVectorParams.targetVector, delta / visualElementVectorParams.durationToReach);
@@ -62,22 +92,36 @@ public class VisualElementTransitions : Singleton<VisualElementTransitions>
                 visualElementVectorParams.visualElement.style.opacity = visualElementVectorParams.targetVector.x;
                 break;
         }
-        Debug.LogError("Done calback");
+
         visualElementVectorParams.onEndCallback?.Invoke();
-        visualElementVectorParams.routineCache = null;
+        routineList.Remove(routineInfo);
     }
 
     public void ShakePosition(VisualElementShakeParams visualElementShakeParams)
     {
-        if(visualElementShakeParams.routineCache != null)
+        ETransitionType _transitionType = GetTransitionType(VisualElementVectorParams.EVectorType.Shake);
+        string targetID = visualElementShakeParams.id;
+
+        RoutineInfo foundRoutine = routineList.Find(x => x.id == targetID && x.transitionType == _transitionType);
+        if(foundRoutine != null)
         {
-            StopCoroutine(visualElementShakeParams.routineCache);
+            StopCoroutine(foundRoutine.routineCache);
+        }
+        else
+        {
+            foundRoutine = new RoutineInfo()
+            {
+                id = targetID,
+                transitionType = _transitionType
+            };
+            
+            routineList.Add(foundRoutine);
         }
 
-        visualElementShakeParams.routineCache = StartCoroutine(ShakeUpdate(visualElementShakeParams));
+        foundRoutine.routineCache = StartCoroutine(ShakeUpdate(foundRoutine, visualElementShakeParams));
     }
 
-    private IEnumerator ShakeUpdate(VisualElementShakeParams visualElementShakeParams)
+    private IEnumerator ShakeUpdate(RoutineInfo routineInfo, VisualElementShakeParams visualElementShakeParams)
     {
         float timer = 0f;
         Vector3 initialPos = visualElementShakeParams.visualElement.transform.position;
@@ -104,14 +148,24 @@ public class VisualElementTransitions : Singleton<VisualElementTransitions>
         visualElementShakeParams.visualElement.transform.position = initialPos;
 
         visualElementShakeParams.onEndCallback?.Invoke();
-        visualElementShakeParams.routineCache = null;
+        routineList.Remove(routineInfo);
     }
- 
+
+    ETransitionType GetTransitionType(VisualElementVectorParams.EVectorType vectorType)
+    {
+        return vectorType switch
+        {
+            VisualElementVectorParams.EVectorType.Position => ETransitionType.Position,
+            VisualElementVectorParams.EVectorType.Scale => ETransitionType.Scale,
+            VisualElementVectorParams.EVectorType.Opacity => ETransitionType.Opacity,
+            _ => ETransitionType.Shake
+        };
+    }
 }
 
 public class VisualElementVectorParams
 {
-    public Coroutine routineCache;
+    public string id;
     public VisualElement visualElement;
     public Action onEndCallback;
     /// <summary>
@@ -122,6 +176,7 @@ public class VisualElementVectorParams
     public EVectorType vectorType;
     public enum EVectorType
     {
+        Shake = -1,
         Position = 0,
         Scale = 1,
         Opacity = 2
@@ -130,7 +185,7 @@ public class VisualElementVectorParams
 
 public class VisualElementShakeParams
 {
-    public Coroutine routineCache;
+    public string id;
     public VisualElement visualElement;
     public Action onEndCallback;
     public float shakeDuration;

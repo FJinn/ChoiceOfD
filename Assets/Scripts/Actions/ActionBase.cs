@@ -100,7 +100,6 @@ public abstract class ActionBase : MonoBehaviour
     public void SetTargets(List<CharacterBase> _targets)
     {
         Debug.Assert(instigator is not PlayerCharacter && _targets.Count > 0 && _targets.Count <= targetToBeSelectedCount);
-Debug.LogError(_targets.Count + " :: <------");
         targets = _targets;
     }
 

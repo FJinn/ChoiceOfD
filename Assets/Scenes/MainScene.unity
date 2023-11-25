@@ -1839,6 +1839,7 @@ MonoBehaviour:
   effectsTypes: []
   poisonTurn: 1
   reduceByTurn: 0
+  poisonReduceHealthPercentageByTurn: 0.1
 --- !u!114 &1084953729
 MonoBehaviour:
   m_ObjectHideFlags: 0

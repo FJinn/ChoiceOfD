@@ -15,8 +15,6 @@ public class CombatTurnUI : MonoBehaviour
     Label actionName;
     List<CombatTurnUIItem> spawnedCombatTurnUIItems = new();
 
-    Coroutine actionNamePanelRoutine;
-
     static int turnUIItemInTransitionsCount;
     public static bool stillRunning => turnUIItemInTransitionsCount > 0;
 
@@ -126,33 +124,34 @@ public class CombatTurnUI : MonoBehaviour
         actionName.text = action.actionName;
         actionNamePanel.transform.scale = new Vector3(0, 1, 1);
         actionNamePanel.style.display = DisplayStyle.Flex;
-        VisualElementTransitions.Instance.LerpVector(new VisualElementVectorParams
+        VisualElementVectorParams transitions = new VisualElementVectorParams
         {
+            id = actionNamePanel.name,
             visualElement = actionNamePanel,
-            routineCache = actionNamePanelRoutine,
             onEndCallback = ()=>
             {
                 ShowActionName(callback);
             },
             targetVector = Vector3.one,
             durationToReach = 0.5f,
-            vectorType = VisualElementVectorParams.EVectorType.Scale
-        });
+            vectorType = VisualElementVectorParams.EVectorType.Scale,
+        };
+        VisualElementTransitions.Instance.LerpVector(transitions);
     }
 
     void ShowActionName(Action callback)
     {
         actionName.style.opacity = 0;
-        Coroutine actionNameOpacityRoutine = null;
-        VisualElementTransitions.Instance.LerpVector(new VisualElementVectorParams
+        VisualElementVectorParams transitions = new VisualElementVectorParams
         {
+            id = actionName.name,
             visualElement = actionName,
-            routineCache = actionNameOpacityRoutine,
             onEndCallback = callback,
             targetVector = Vector3.right,
             durationToReach = 0.7f,
             vectorType = VisualElementVectorParams.EVectorType.Opacity
-        });
+        };
+        VisualElementTransitions.Instance.LerpVector(transitions);
     }
 
     public void HideActionNamePanel()
