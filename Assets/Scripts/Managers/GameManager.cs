@@ -9,9 +9,26 @@ public class GameManager : Singleton<GameManager>
     public Action onGameOver;
 
     [SerializeField] PlayerController player;
+    [SerializeField] List<ECharacterClass> initialCharacters;
     bool isGameOver;
     public bool IsGameOver() => isGameOver;
     public PlayerController GetPlayer() => player;
+
+    public void FillParty()
+    {
+        if(initialCharacters.Count <= 0 || initialCharacters.Contains(ECharacterClass.None))
+        {
+            Debug.LogError("DebugManager:: Fill with classes contains 0 or None! Skipping!");
+            return;
+        }
+
+        PlayerController player = PlayerController.Instance;
+        int fillAmount = Mathf.Clamp(initialCharacters.Count, 1, 4);
+        for(int i=0; i<fillAmount; ++i)
+        {
+            player.ObtainCharacter(initialCharacters[i]);
+        }
+    }
 
     void Start()
     {
@@ -39,7 +56,7 @@ public class GameManager : Singleton<GameManager>
     {
         RoomManager.Instance.InitializeTavernRoom(()=>
         {
-            RoomManager.Instance.PlayerCharactersEnterRoom(true, ()=>RoomManager.Instance.SpawnObjectsInRoom(false, null));
+            RoomManager.Instance.PlayerCharactersEnterRoom(true, ()=>RoomManager.Instance.SpawnObjectsInRoom(false, FillParty));
         });
     }
 

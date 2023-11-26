@@ -1,0 +1,5 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <ui:VisualElement name="Panel" picking-mode="Ignore" style="flex-grow: 1; justify-content: flex-end;">
+        <ui:Button text="Start Mission" parse-escape-sequences="true" display-tooltip-when-elided="true" name="StartButton" style="width: 15%; left: 10%; bottom: 10%;" />
+    </ui:VisualElement>
+</ui:UXML>

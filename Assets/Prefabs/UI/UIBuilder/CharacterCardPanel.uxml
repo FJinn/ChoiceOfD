@@ -7,8 +7,5 @@
             <ui:Instance template="CharacterCardPanelTemplate" name="CharacterCardPanel3" picking-mode="Ignore" style="align-self: flex-end; justify-content: center; flex-shrink: 0; height: 100%; flex-basis: 20%;" />
             <ui:Instance template="CharacterCardPanelTemplate" name="CharacterCardPanel4" picking-mode="Ignore" style="align-self: flex-end; justify-content: center; flex-shrink: 0; height: 100%; flex-basis: 20%; display: flex; visibility: visible;" />
         </ui:VisualElement>
-        <ui:VisualElement name="ConfirmPanel" picking-mode="Ignore" style="width: 10%; align-self: center; align-items: stretch; height: 8%; font-size: 14px;">
-            <ui:Button text="Button" parse-escape-sequences="true" display-tooltip-when-elided="true" name="ConfirmButton" style="flex-grow: 1; flex-shrink: 1; font-size: 14px;" />
-        </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

@@ -61,11 +61,6 @@ public class RoomTile : MonoBehaviour
             return;
         }
         
-        player.EnterRoom(this, ()=>
-        {
-            callback?.Invoke();
-        }, preplacedInRoom, playersStartPoints);
-
         foreach(var item in player.GetAllPlayerCharacters())
         {
             if(item.GetCharacterClassInfo() == null)
@@ -74,6 +69,11 @@ public class RoomTile : MonoBehaviour
             }
             AddCharactersIntoList(item);
         }
+        
+        player.EnterRoom(this, ()=>
+        {
+            callback?.Invoke();
+        }, preplacedInRoom, playersStartPoints);
     }
 
     void CharactersExitRoom(Action callback)
@@ -117,6 +117,7 @@ public class RoomTile : MonoBehaviour
         GameEventInfo eventInfo = GameEvent.Instance.GetCurrentGameEventInfo();
         if(eventInfo == null)
         {
+            callback?.Invoke();
             return;
         }
         SpawnEnemiesIntoRoom(isCombat, callback);

@@ -41,14 +41,7 @@ public class PlayerController : Singleton<PlayerController>
     {
         GameManager.Instance.PauseCombat();
 
-        currentActionSelectionRequiredClasses.Clear();
-        if(targetClasses != null)
-        {
-            foreach(ECharacterClass item in targetClasses)
-            {
-                currentActionSelectionRequiredClasses.Add(item);
-            }
-        }
+        SetCurrentActionSelectionRequiredClasses(targetClasses);
 
         WaitToSelectActionData(()=>
         {
@@ -73,23 +66,16 @@ public class PlayerController : Singleton<PlayerController>
         });
     }
 
-    public void ReduceHealth(int reduceAmount, List<ECharacterClass> targetClasses, Action callback, bool callSelectActionToTakeDamage = true)
+    public void ReduceHealth(int reduceAmount, List<ECharacterClass> targetClasses, Action callback, bool directCall = true)
     {
         GameManager.Instance.PauseCombat();
 
         currentReceivingDamage = reduceAmount;
-        
-        currentActionSelectionRequiredClasses.Clear();
-        if(targetClasses != null)
-        {
-            foreach(ECharacterClass item in targetClasses)
-            {
-                currentActionSelectionRequiredClasses.Add(item);
-            }
-        }
 
-        if(callSelectActionToTakeDamage)
+        if(directCall)
         {
+            SetCurrentActionSelectionRequiredClasses(targetClasses);
+        
             onSelectActionToTakeDamage?.Invoke(reduceAmount, currentActionSelectionRequiredClasses);
         }
 
@@ -102,6 +88,7 @@ public class PlayerController : Singleton<PlayerController>
 
     public void ReduceHealthByPercentage(float reducePercentage, List<ECharacterClass> targetClasses, Action callback)
     {
+        SetCurrentActionSelectionRequiredClasses(targetClasses);
         onSelectActionToTakeDamagePercentage?.Invoke(reducePercentage, currentActionSelectionRequiredClasses);
         WaitToSelectActionData(()=>
         {
@@ -110,6 +97,29 @@ public class PlayerController : Singleton<PlayerController>
 
             ReduceHealth(targetReduceAmount, targetClasses, callback, false);
         });
+    }
+
+    void SetCurrentActionSelectionRequiredClasses(List<ECharacterClass> characterClasses)
+    {
+        currentActionSelectionRequiredClasses.Clear();
+        if(characterClasses != null)
+        {
+            foreach(ECharacterClass item in characterClasses)
+            {
+                currentActionSelectionRequiredClasses.Add(item);
+            }
+        }
+        else
+        {
+            foreach(PlayerCharacter item in playerCharacters)
+            {
+                if(item?.GetCharacterClassInfo() == null)
+                {
+                    continue;
+                }
+                currentActionSelectionRequiredClasses.Add(item.GetCharacterClassInfo().characterClassType);
+            }
+        }
     }
 
     public static void SelectActionData(ActionData target)
@@ -255,17 +265,23 @@ public class PlayerController : Singleton<PlayerController>
         characterEnteredRoomCount = 0;
         for(int i=0; i<playerCharacters.Length; ++i)
         {
-            // Debug.LogError(playerCharacters[i] + " entering room!");
-            playerCharacters[i].EnterRoom(roomTile, ()=>AllCharactersEnteredRoom(), enterTransforms[i], preplacedInRoom);
+            playerCharacters[i].EnterRoom(roomTile, ()=>AllCharactersEnteredRoom(preplacedInRoom), enterTransforms[i], preplacedInRoom);
         }
     }
 
     // enterRoom callback only call once instead of multiple times
-    void AllCharactersEnteredRoom()
+    void AllCharactersEnteredRoom(bool preplacedInRoom)
     {
         characterEnteredRoomCount += 1;
-        int totalEnteredRoom = playerCharacters.FindAll(x => x.GetCharacterClassInfo() != null).Length;
-        if(characterEnteredRoomCount < totalEnteredRoom)
+        if(!preplacedInRoom)
+        {
+           int totalAvailableCharactersEnteredRoom = playerCharacters.FindAll(x => x.GetCharacterClassInfo() != null).Length + 1;
+            if(characterEnteredRoomCount < totalAvailableCharactersEnteredRoom)
+            {
+                return;
+            }
+        }
+        else if(characterEnteredRoomCount != playerCharacters.Length)
         {
             return;
         }

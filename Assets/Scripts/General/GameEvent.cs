@@ -7,6 +7,7 @@ public class GameEvent : Singleton<GameEvent>
 {
     public Action<GameEventInfo> onUpdateCurrentGameEventInfo;
     public Action onRoomReady;
+    public static Action onEnterDungeon;
 
     GameEventData currentEventData;
     GameEventInfo currentGameEventInfo;
@@ -43,6 +44,7 @@ public class GameEvent : Singleton<GameEvent>
         RoomManager roomManager = RoomManager.Instance;
         roomManager.InitializeCombatRoom(()=>
         {
+            onEnterDungeon?.Invoke();
             InitializeEvent(true);
         });
     }

@@ -12,6 +12,8 @@ public class CardUIItem : MonoBehaviour
 
     CardData[] cardDatas = new CardData[12];
 
+    bool inSelectedTransition;
+
     [Serializable]
     public class CardData
     {
@@ -29,7 +31,6 @@ public class CardUIItem : MonoBehaviour
         public Vector2 adjustmentToScreenValue;
 
         public bool hasCardFocused;
-        public bool inSelectedTransition;
 
         public void RegisterUpdateHealth() => actionData.onHealthUpdate += UpdateHealth;
         public void UnregisterUpdateHealth() => actionData.onHealthUpdate -= UpdateHealth;
@@ -135,14 +136,14 @@ public class CardUIItem : MonoBehaviour
         }
     }
 
-    public void InitializeCharacterCardUI(ECharacterClass characterClass)
+    public void InitializeCharacterCardUI(ECharacterClass characterClass, bool showPanel = true)
     {
         int foundIndex = cardDatas.FindIndex(x => x.characterClass == ECharacterClass.None);
         for(int i=0; i<3; ++i)
         {
             int targetIndex = foundIndex+i;
             cardDatas[targetIndex].characterClass = characterClass;
-            cardDatas[targetIndex].parentPanel.style.display = DisplayStyle.Flex;
+            cardDatas[targetIndex].parentPanel.style.display = showPanel ? DisplayStyle.Flex : DisplayStyle.None;
             cardDatas[targetIndex].card.style.display = DisplayStyle.None;
         }
     }
@@ -160,6 +161,18 @@ public class CardUIItem : MonoBehaviour
             target.actionData = null;
             target.card.style.display = DisplayStyle.None;
             target.parentPanel.style.display = DisplayStyle.None;
+        }
+    }
+
+    public void SetAllCharacterPanelsDisplay(DisplayStyle display = DisplayStyle.Flex)
+    {
+        for(int i=0; i<12; i+=3)
+        {
+            if(cardDatas[i].characterClass == ECharacterClass.None)
+            {
+                continue;
+            }
+            cardDatas[i].parentPanel.style.display = display;
         }
     }
 
@@ -202,20 +215,20 @@ public class CardUIItem : MonoBehaviour
         target.healthPoint.text = target.actionData.currentHealth.ToString();
     }
 
-    public void UpdateSelectableClassPanel(ECharacterClass characterClass)
+    public void UpdateSelectableClassPanel(List<ECharacterClass> characterClass)
     {
         for(int i=0; i<12; i+=3)
         {
             VisualElementTransitions transitions = VisualElementTransitions.Instance;
-            if(cardDatas[i].actionData.belongToCharacterClass != characterClass)
+            if(cardDatas[i].actionData != null && characterClass.Contains(cardDatas[i].actionData.belongToCharacterClass))
             {
                 VisualElementVectorParams parameters = new VisualElementVectorParams
                 {
                     id = cardDatas[i].id + cardDatas[i].parentPanel.name,
                     visualElement = cardDatas[i].parentPanel,
                     onEndCallback = null,
-                    targetVector = cardDatas[i].parentPanel.transform.position + new Vector3(0, cardDatas[i].parentPanel.resolvedStyle.height, 0),
-                    durationToReach = 1f,
+                    targetVector = cardDatas[i].parentPanel.transform.position - new Vector3(0, cardDatas[i].parentPanel.resolvedStyle.height * 0.1f, 0),
+                    durationToReach = 0.2f,
                     vectorType = VisualElementVectorParams.EVectorType.Position
                 };
                 transitions.LerpVector(parameters);
@@ -228,7 +241,7 @@ public class CardUIItem : MonoBehaviour
                     visualElement = cardDatas[i].parentPanel,
                     onEndCallback = null,
                     targetVector = cardDatas[i].initialParentPosition,
-                    durationToReach = 1f,
+                    durationToReach = 0.2f,
                     vectorType = VisualElementVectorParams.EVectorType.Position
                 };
                 transitions.LerpVector(parameters);
@@ -238,7 +251,7 @@ public class CardUIItem : MonoBehaviour
 
     void OnPointerClick(CardData selectingCard)
     {
-        if(selectingCard.inSelectedTransition || !CombatManager.Instance.isInCombat || !cardUI.IsSelectableClass(selectingCard.actionData.belongToCharacterClass) || !selectingCard.actionData.canBeSelected)
+        if(inSelectedTransition || !CombatManager.Instance.isInCombat || !cardUI.IsSelectableClass(selectingCard.actionData.belongToCharacterClass) || !selectingCard.actionData.canBeSelected)
         {
             return;
         }
@@ -246,6 +259,7 @@ public class CardUIItem : MonoBehaviour
         SelectCardTransitions(selectingCard, ()=>
         {
             cardUI.ConfirmSelection(selectingCard.actionData);
+            selectingCard.damageAmount.style.display = DisplayStyle.None;
             selectingCard.hasCardFocused = false;
         });
         // selectingCard.card.style.backgroundColor = cardUI.isSelectToTakeDamage ? Color.red : Color.blue;
@@ -253,7 +267,7 @@ public class CardUIItem : MonoBehaviour
 
     void OnPointerEnter(CardData selectingCard)
     {
-        if(selectingCard.inSelectedTransition)
+        if(inSelectedTransition)
         {
             return;
         }
@@ -270,7 +284,7 @@ public class CardUIItem : MonoBehaviour
 
     void OnPointerExit(CardData selectingCard)
     {
-        if(selectingCard.inSelectedTransition)
+        if(inSelectedTransition)
         {
             return;
         }
@@ -346,11 +360,8 @@ public class CardUIItem : MonoBehaviour
 
     void SelectCardTransitions(CardData selectingCard, Action onTransitionsEnd)
     {
-        selectingCard.inSelectedTransition = true;
+        inSelectedTransition = true;
         Vector3 screenCenter = selectingCard.GetCardPositionFromScreenPosition(new Vector2(Screen.width, Screen.height) * 0.5f);
-
-        //screenCenter = selectingCard.card.WorldToLocal(screenCenter);
-        selectingCard.inSelectedTransition = true;
         VisualElementTransitions transitions = VisualElementTransitions.Instance;
         VisualElementVectorParams positionParameters = new VisualElementVectorParams
         {
@@ -370,7 +381,7 @@ public class CardUIItem : MonoBehaviour
                     vectorType = VisualElementVectorParams.EVectorType.Scale,
                     onEndCallback = ()=>
                     {
-                        selectingCard.inSelectedTransition = false;
+                        inSelectedTransition = false;
                         UnfocusOnCard(selectingCard, true);
                         onTransitionsEnd?.Invoke();
                     }

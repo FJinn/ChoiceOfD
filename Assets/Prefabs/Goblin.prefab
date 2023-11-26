@@ -141,10 +141,6 @@ MonoBehaviour:
       PublicKeyToken=null
     typeName: BasicAttack
     m_IsInit: 1
-  - m_SelectedTypeName: Action_HealSelf, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
-      PublicKeyToken=null
-    typeName: Action_HealSelf
-    m_IsInit: 1
 --- !u!1001 &3421350101654220692
 PrefabInstance:
   m_ObjectHideFlags: 0
