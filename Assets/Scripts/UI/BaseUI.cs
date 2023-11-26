@@ -10,7 +10,7 @@ public class BaseUI : MonoBehaviour
 
     Button startButton;
 
-    const string BaseButtonOnPointerEnterUSS = "baseButtonPointerEnter";
+    // const string BaseButtonOnPointerEnterUSS = "baseButtonPointerEnter";
 
     void Awake()
     {
@@ -19,7 +19,7 @@ public class BaseUI : MonoBehaviour
         startButton = root.Q<Button>("StartButton");
 
         startButton.clicked += OnStartButtonClicked;
-
+/*
         startButton.RegisterCallback<PointerEnterEvent>(e =>
         {
             OnPointerEnterButton();
@@ -28,13 +28,14 @@ public class BaseUI : MonoBehaviour
         {
             OnPointerExitButton();
         });
+        */
     }
 
     void Start()
     {
         GameEvent.onEnterDungeon += OnEnterDungeon;
     }
-
+/*
     void OnPointerEnterButton()
     {
         startButton.AddToClassList(BaseButtonOnPointerEnterUSS);
@@ -44,7 +45,7 @@ public class BaseUI : MonoBehaviour
     {
         startButton.RemoveFromClassList(BaseButtonOnPointerEnterUSS);
     }
-
+*/
     void OnStartButtonClicked()
     {
         GameEvent.Instance.ToDungeonEvent(gameEventData);
