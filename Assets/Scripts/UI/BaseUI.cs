@@ -8,6 +8,7 @@ public class BaseUI : MonoBehaviour
     public UIDocument uiDocument;
     [SerializeField] GameEventData gameEventData;
 
+    VisualElement root;
     Button startButton;
 
     // const string BaseButtonOnPointerEnterUSS = "baseButtonPointerEnter";
@@ -53,6 +54,6 @@ public class BaseUI : MonoBehaviour
 
     void OnEnterDungeon()
     {
-        startButton.style.display = DisplayStyle.None;
+        root.style.display = DisplayStyle.None;
     }
 }
