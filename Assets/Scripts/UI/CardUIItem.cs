@@ -220,7 +220,7 @@ public class CardUIItem : MonoBehaviour
         for(int i=0; i<12; i+=3)
         {
             VisualElementTransitions transitions = VisualElementTransitions.Instance;
-            if(cardDatas[i].actionData != null && characterClass.Contains(cardDatas[i].actionData.belongToCharacterClass))
+            if(cardDatas[i].actionData != null && characterClass != null && characterClass.Contains(cardDatas[i].actionData.belongToCharacterClass))
             {
                 VisualElementVectorParams parameters = new VisualElementVectorParams
                 {
@@ -255,14 +255,15 @@ public class CardUIItem : MonoBehaviour
         {
             return;
         }
-        
+
+        UpdateSelectableClassPanel(null);
+
         SelectCardTransitions(selectingCard, ()=>
         {
             cardUI.ConfirmSelection(selectingCard.actionData);
             selectingCard.damageAmount.style.display = DisplayStyle.None;
             selectingCard.hasCardFocused = false;
         });
-        // selectingCard.card.style.backgroundColor = cardUI.isSelectToTakeDamage ? Color.red : Color.blue;
     }
 
     void OnPointerEnter(CardData selectingCard)

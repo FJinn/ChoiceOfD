@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f403a907bc057b47b4afc6b2edacc87, type: 3}
+  m_Name: CardSetting
+  m_EditorClassIdentifier: 
+  combinationList:
+  - result: {fileID: 11400000, guid: 3097aef3e2c52fb4c88f0b955424343c, type: 2}
+    combinations:
+    - {fileID: 11400000, guid: 2bb069de203116c43be7c2cf397f996c, type: 2}
+    - {fileID: 11400000, guid: bc804c5f17fbe68429e505c97de95557, type: 2}
+  - result: {fileID: 11400000, guid: bc804c5f17fbe68429e505c97de95557, type: 2}
+    combinations:
+    - {fileID: 11400000, guid: 2bb069de203116c43be7c2cf397f996c, type: 2}
+    - {fileID: 11400000, guid: 2bb069de203116c43be7c2cf397f996c, type: 2}
+  RunSetup: 0

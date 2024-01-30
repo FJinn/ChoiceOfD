@@ -15,7 +15,7 @@ public class BaseUI : MonoBehaviour
 
     void Awake()
     {
-        VisualElement root = uiDocument.rootVisualElement;
+        root = uiDocument.rootVisualElement;
 
         startButton = root.Q<Button>("StartButton");
 

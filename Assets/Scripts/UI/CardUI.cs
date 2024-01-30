@@ -58,7 +58,6 @@ public class CardUI : MonoBehaviour
         takingDamageAmount = reduceAmount;
         isDamagePercentage = false;
         selectableClasses = allowedClasses;
-        
         cardUIItem.UpdateSelectableClassPanel(selectableClasses);
     }
 
@@ -68,7 +67,7 @@ public class CardUI : MonoBehaviour
         takingDamagePercentageAmount = reducePercentage;
         isDamagePercentage = true;
         selectableClasses = allowedClasses;
-        
+
         cardUIItem.UpdateSelectableClassPanel(selectableClasses);
     }
 
@@ -88,8 +87,6 @@ public class CardUI : MonoBehaviour
         PlayerController.SelectActionData(actionData);
         selectableClasses = null;
         isSelectToTakeDamage = false;
-        
-        cardUIItem.UpdateSelectableClassPanel(selectableClasses);
     }
 
     void OnAddAction(ActionData target)
